@@ -1,0 +1,39 @@
+name: Upload Python Package
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+    - name: Install Build Dependencies
+      run: pip install build twine 
+
+    - name: Extract Tag Version
+      id: extract_tag
+      run: echo ::set-output name=tag::${GITHUB_REF#refs/tags/}
+
+    - name: Set Package Version
+      run: sed -i "s/version=.*/version='${{ steps.extract_tag.outputs.tag }}',/" setup.py
+
+
+    - name: Build Distribution
+      run: python -m build
+
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: twine upload dist/*
