@@ -3,10 +3,11 @@ import gzip
 
 
 class LokiRequest:
-    def __init__(self, url, compressed=False):
+    def __init__(self, url, compressed=False, additional_headers=dict()):
         self.url = url
         self.compressed = compressed
-        self.headers = {"Content-type": "application/json"}
+        self.headers = additional_headers
+        self.headers["Content-type"] = "application/json"
         self.session = requests.Session()
 
     def send(self, data):

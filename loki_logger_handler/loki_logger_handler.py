@@ -19,6 +19,7 @@ class LokiLoggerHandler(logging.Handler):
         timeout=10,
         compressed=True,
         defaultFormatter=LoggerFormatter(),
+        additional_headers=dict()
     ):
         super().__init__()
 
@@ -29,7 +30,7 @@ class LokiLoggerHandler(logging.Handler):
         self.labelKeys = labelKeys
         self.timeout = timeout
         self.logger_formatter = defaultFormatter
-        self.request = LokiRequest(url=url, compressed=compressed)
+        self.request = LokiRequest(url=url, compressed=compressed, additional_headers=additional_headers)
         self.buffer = queue.Queue()
         self.flush_thread = threading.Thread(target=self._flush, daemon=True)
         self.flush_thread.start()
