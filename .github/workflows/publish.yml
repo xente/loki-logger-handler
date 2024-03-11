@@ -11,6 +11,11 @@ jobs:
   deploy:
 
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/loki-logger-handler
+    permissions:
+      id-token: write
 
     steps:
     - uses: actions/checkout@v3
@@ -28,12 +33,8 @@ jobs:
     - name: Set Package Version
       run: sed -i "s/version=.*/version='${{ steps.extract_tag.outputs.tag }}',/" setup.py
 
-
     - name: Build Distribution
       run: python -m build
 
-    - name: Publish to PyPI
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: twine upload dist/*
+    - name: Publish package distributions to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
