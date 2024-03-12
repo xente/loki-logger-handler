@@ -19,9 +19,9 @@ class LoguruFormatter:
 
         if record.get("extra"):
             if record.get("extra").get("extra"):
-                formatted |= record.get("extra").get("extra")
+                formatted.update(record.get("extra").get("extra"))
             else:
-                formatted |= record.get("extra")
+                formatted.update(record.get("extra"))
 
         if record.get("level").name == "ERROR":
             formatted["file"] = record.get("file").name
