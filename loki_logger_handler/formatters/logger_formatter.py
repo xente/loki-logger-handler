@@ -30,7 +30,7 @@ class LoggerFormatter:
 
     def format(self, record):
         formatted = {
-            "message": record.msg % record.args,
+            "message": record.getMessage(),
             "timestamp": record.created,
             "process": record.process,
             "thread": record.thread,
