@@ -2,6 +2,9 @@ import traceback
 
 
 class LoggerFormatter:
+    """
+    A custom formatter for log records that formats the log record into a structured dictionary.
+    """
     LOG_RECORD_FIELDS = {
         "msg",
         "levelname",
@@ -29,6 +32,15 @@ class LoggerFormatter:
         pass
 
     def format(self, record):
+        """
+        Format a log record into a structured dictionary.
+
+        Args:
+            record (logging.LogRecord): The log record to format.
+
+        Returns:
+            dict: A dictionary representation of the log record.
+        """
         formatted = {
             "message": record.getMessage(),
             "timestamp": record.created,
@@ -40,13 +52,15 @@ class LoggerFormatter:
             "level": record.levelname,
         }
 
+        # Capture any custom fields added to the log record
         record_keys = set(record.__dict__.keys())
-        missing_fields = record_keys - self.LOG_RECORD_FIELDS
+        custom_fields = record_keys - self.LOG_RECORD_FIELDS
 
-        for key in missing_fields:
+        for key in custom_fields:
             formatted[key] = getattr(record, key)
 
-        if record.levelname == "ERROR":
+        # Check if the log level indicates an error (case-insensitive and can be partial)
+        if record.levelname.upper().startswith("ER"):
             formatted["file"] = record.filename
             formatted["path"] = record.pathname
             formatted["line"] = record.lineno
