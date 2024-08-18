@@ -200,10 +200,12 @@ class TestLokiLoggerHandler(unittest.TestCase):
     def test_send_diff_labels(
         self, mock_lokirequest, mock_stream, mock_streams, mock_thread
     ):
+        message_in_json_format = True
         handler = LokiLoggerHandler(
             "http://test_url",
             labels={"label1": "value1"},
             default_formatter=LoguruFormatter(),
+            message_in_json_format=message_in_json_format
         )
 
         record = {
@@ -242,9 +244,9 @@ class TestLokiLoggerHandler(unittest.TestCase):
 
         mock_stream.assert_has_calls(
             [
-                call(log1.labels),
+                call(log1.labels, message_in_json_format),
                 call().append_value(log1.line),
-                call(log2.labels),
+                call(log2.labels, message_in_json_format),
                 call().append_value(log2.line),
             ]
         )
@@ -256,10 +258,12 @@ class TestLokiLoggerHandler(unittest.TestCase):
     def test_send_same_labels(
         self, mock_lokirequest, mock_stream, mock_streams, mock_thread
     ):
+        message_in_json_format = True
         handler = LokiLoggerHandler(
             "http://test_url",
             labels={"label1": "value1"},
             default_formatter=LoguruFormatter(),
+            message_in_json_format=message_in_json_format
         )
 
         record = {
@@ -292,7 +296,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         actual_streams = list(mock_streams.call_args[0][0])
         self.assertEqual(expected_streams, actual_streams)
 
-        mock_stream.assert_has_calls([call(log1.labels)])
+        mock_stream.assert_has_calls([call(log1.labels, message_in_json_format)])
 
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
     @patch("loki_logger_handler.loki_logger_handler.Streams")
