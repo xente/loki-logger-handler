@@ -21,8 +21,9 @@ class Stream(object):
     Attributes:
         stream (dict): A dictionary containing the labels for the stream.
         values (list): A list of timestamped values associated with the stream.
+        message_in_json_format (bool): Whether to format log values as JSON.
     """
-    def __init__(self, labels=None):
+    def __init__(self, labels=None, message_in_json_format=True):
         """
         Initialize a Stream object with optional labels.
         
@@ -31,6 +32,7 @@ class Stream(object):
         """
         self.stream = labels if labels is not None else {}
         self.values = []
+        self.message_in_json_format = message_in_json_format
 
     def add_label(self, key, value):
         """
@@ -56,11 +58,10 @@ class Stream(object):
         except (TypeError, ValueError):
             # Fallback to the current time in nanoseconds if the timestamp is missing or invalid
             timestamp = str(time.time_ns())
-            
-        self.values.append([
-            timestamp,
-            json.dumps(value, ensure_ascii=False)
-        ])
+
+        formatted_value = json.dumps(value, ensure_ascii=False) if self.message_in_json_format else value
+                    
+        self.values.append([timestamp, formatted_value])
 
     def serialize(self):
         """

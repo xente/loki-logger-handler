@@ -22,6 +22,7 @@ class LokiLoggerHandler(logging.Handler):
         request (LokiRequest): Loki request object for sending logs.
         buffer (queue.Queue): Buffer to store log records before sending.
         flush_thread (threading.Thread): Thread for periodically flushing logs.
+        message_in_json_format (bool): Whether to format log values as JSON.
     """
 
     def __init__(
@@ -30,6 +31,7 @@ class LokiLoggerHandler(logging.Handler):
         labels,
         label_keys=None,
         additional_headers=None,
+        message_in_json_format=True,
         timeout=10,
         compressed=True,
         loguru=False,
@@ -41,13 +43,14 @@ class LokiLoggerHandler(logging.Handler):
         Args:
             url (str): The URL of the Loki server.
             labels (dict): Default labels for the logs.
-            label_keys (dict, optional): Specific log record keys to extract as labels. Defaults to an empty dictionary.
-            additional_headers (dict, optional): Additional headers for the Loki request. Defaults to an empty dict.
+            label_keys (dict, optional): Specific log record keys to extract as labels. Defaults to None.
+            additional_headers (dict, optional): Additional headers for the Loki request. Defaults to None.
+            message_in_json_format (bool): Whether to format log values as JSON.
             timeout (int, optional): Timeout interval for flushing logs. Defaults to 10 seconds.
             compressed (bool, optional): Whether to compress the logs using gzip. Defaults to True.
             loguru (bool, optional): Whether to use LoguruFormatter. Defaults to False.
             default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,
-                                                             LoggerFormatter or LoguruFormatter will be used.
+                LoggerFormatter or LoguruFormatter will be used.
         """
         super().__init__()
 
@@ -61,6 +64,7 @@ class LokiLoggerHandler(logging.Handler):
         self.buffer = queue.Queue()
         self.flush_thread = threading.Thread(target=self._flush, daemon=True)
         self.flush_thread.start()
+        self.message_in_json_format = message_in_json_format
 
     def emit(self, record):
         """
@@ -104,7 +108,7 @@ class LokiLoggerHandler(logging.Handler):
         while not self.buffer.empty():
             log = self.buffer.get()
             if log.key not in temp_streams:
-                stream = Stream(log.labels)
+                stream = Stream(log.labels, self.message_in_json_format)
                 temp_streams[log.key] = stream
 
             temp_streams[log.key].append_value(log.line)
