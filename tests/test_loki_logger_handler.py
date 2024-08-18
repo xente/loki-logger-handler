@@ -1,3 +1,4 @@
+import logging
 import unittest
 import pytest
 from unittest.mock import patch, Mock, MagicMock, call
@@ -7,6 +8,11 @@ from loki_logger_handler.formatters.logger_formatter import LoggerFormatter
 from loki_logger_handler.formatters.loguru_formatter import LoguruFormatter
 
 from tests.helper import LevelObject, RecordValueMock, TimeObject
+
+
+class CustomFormatter(logging.Formatter):
+    def format(self, record):
+        return f"Custom formatted: {record.getMessage()}"
 
 
 class TestLokiLoggerHandler(unittest.TestCase):
@@ -28,9 +34,9 @@ class TestLokiLoggerHandler(unittest.TestCase):
         }
         handler = LokiLoggerHandler(
             url="your_url",
-            labels={"application": "Test", "envornment": "Develop"},
-            labelKeys={},
-            defaultFormatter=mock_formatter,
+            labels={"application": "Test", "environment": "Develop"},
+            label_keys={},
+            default_formatter=mock_formatter,
         )
         # Act
         handler.emit(record)
@@ -44,8 +50,8 @@ class TestLokiLoggerHandler(unittest.TestCase):
         # Arrange
         loki = LokiLoggerHandler(
             url="your_url",
-            labels={"application": "Test", "envornment": "Develop"},
-            labelKeys={},
+            labels={"application": "Test", "environment": "Develop"},
+            label_keys={},
         )
 
         # Act/Assert
@@ -85,9 +91,9 @@ class TestLokiLoggerHandler(unittest.TestCase):
         }
         handler = LokiLoggerHandler(
             url="your_url",
-            labels={"application": "Test", "envornment": "Develop"},
-            labelKeys={},
-            defaultFormatter=mock_formatter,
+            labels={"application": "Test", "environment": "Develop"},
+            label_keys={},
+            default_formatter=mock_formatter,
         )
 
         # Act
@@ -115,8 +121,8 @@ class TestLokiLoggerHandler(unittest.TestCase):
         }
         handler = LokiLoggerHandler(
             url="your_url",
-            labels={"application": "Test", "envornment": "Develop"},
-            labelKeys={},
+            labels={"application": "Test", "environment": "Develop"},
+            label_keys={},
         )
 
         mock_queue = Mock()
@@ -124,12 +130,12 @@ class TestLokiLoggerHandler(unittest.TestCase):
         # Act
         handler._put(mock_message.record)
 
-        expected_labels = {"application": "Test", "envornment": "Develop"}
+        expected_labels = {"application": "Test", "environment": "Develop"}
         mock_logline.assert_called_with(expected_labels, mock_message.record)
 
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
     @patch("loki_logger_handler.loki_logger_handler.LogLine")
-    def test_put_lable_key(self, mock_logline, mock_thread):
+    def test_put_label_key(self, mock_logline, mock_thread):
         # Arrange
         mock_message = Mock()
 
@@ -146,8 +152,8 @@ class TestLokiLoggerHandler(unittest.TestCase):
         }
         handler = LokiLoggerHandler(
             url="your_url",
-            labels={"application": "Test", "envornment": "Develop"},
-            labelKeys={"function"},
+            labels={"application": "Test", "environment": "Develop"},
+            label_keys={"function"},
         )
 
         mock_queue = Mock()
@@ -157,7 +163,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
 
         expected_labels = {
             "application": "Test",
-            "envornment": "Develop",
+            "environment": "Develop",
             "function": "sample_function",
         }
         mock_logline.assert_called_with(expected_labels, mock_message.record)
@@ -168,7 +174,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler = LokiLoggerHandler(
             "http://test_url",
             labels={"label1": "value1"},
-            defaultFormatter=LoguruFormatter(),
+            default_formatter=LoguruFormatter(),
         )
         handler.buffer.put("test_log")  # Add an item to the buffer
         handler._send = Mock()  # Mock the _send method
@@ -197,7 +203,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler = LokiLoggerHandler(
             "http://test_url",
             labels={"label1": "value1"},
-            defaultFormatter=LoguruFormatter(),
+            default_formatter=LoguruFormatter(),
         )
 
         record = {
@@ -237,9 +243,9 @@ class TestLokiLoggerHandler(unittest.TestCase):
         mock_stream.assert_has_calls(
             [
                 call(log1.labels),
-                call().appendValue(log1.line),
+                call().append_value(log1.line),
                 call(log2.labels),
-                call().appendValue(log2.line),
+                call().append_value(log2.line),
             ]
         )
 
@@ -253,7 +259,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler = LokiLoggerHandler(
             "http://test_url",
             labels={"label1": "value1"},
-            defaultFormatter=LoguruFormatter(),
+            default_formatter=LoguruFormatter(),
         )
 
         record = {
@@ -294,7 +300,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler = LokiLoggerHandler(
             "http://test_url",
             labels={"label1": "value1"},
-            defaultFormatter=LoguruFormatter(),
+            default_formatter=LoguruFormatter(),
         )
 
         mock_queue = Mock()
@@ -303,6 +309,85 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler._send()
 
         mock_streams.assert_not_called()
+
+    @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
+    def test_custom_formatter(self, mock_thread):
+        # Arrange
+        custom_formatter = CustomFormatter()
+        handler = LokiLoggerHandler(
+            url="your_url",
+            labels={"application": "Test", "environment": "Develop"},
+            label_keys={},
+            default_formatter=custom_formatter,
+        )
+
+        record = Mock()
+        record.getMessage.return_value = "Test message"
+
+        # Act
+        handler.emit(record)
+
+        # Assert
+        formatted_message = handler.logger_formatter.format(record)
+        self.assertEqual(formatted_message, "Custom formatted: Test message")
+
+    @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
+    def test_empty_buffer(self, mock_thread):
+        handler = LokiLoggerHandler(
+            "http://test_url",
+            labels={"label1": "value1"},
+            default_formatter=Mock(),  # Mock the formatter to avoid actual formatting
+        )
+
+        handler._send = Mock()  # Mock the _send method
+        handler.buffer.empty = Mock(return_value=True)  # Buffer is empty
+
+        # Call _flush directly and then immediately break out of the loop
+        with patch("loki_logger_handler.loki_logger_handler.time.sleep", side_effect=Exception("StopIteration")):
+            try:
+                handler._flush()
+            except Exception as e:
+                self.assertEqual(str(e), "StopIteration")
+
+        handler._send.assert_not_called()  # _send should not be called
+
+    @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
+    @patch.object(LokiLoggerHandler, "_put")
+    def test_formatter_exception(self, mock_put, mock_thread):
+        handler = LokiLoggerHandler(
+            "http://test_url",
+            labels={"label1": "value1"},
+            default_formatter=LoguruFormatter(),
+        )
+
+        record = MagicMock()
+        handler.logger_formatter.format = Mock(side_effect=Exception("Formatter Error"))
+
+        handler.emit(record)
+
+        mock_put.assert_not_called()  # The log should not be added to the buffer
+
+    @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
+    @patch.object(LokiLoggerHandler, "_put")
+    @patch("loki_logger_handler.formatters.logger_formatter.LoggerFormatter")
+    def test_emit_with_custom_formatter(self, mock_formatter, mock_put, mock_thread):
+        # Arrange
+        custom_formatter = CustomFormatter()
+        handler = LokiLoggerHandler(
+            url="your_url",
+            labels={"application": "Test", "environment": "Develop"},
+            label_keys={},
+            default_formatter=custom_formatter,
+        )
+
+        record = Mock()
+        record.getMessage.return_value = "Test message"
+
+        # Act
+        handler.emit(record)
+
+        # Assert
+        mock_put.assert_called_with("Custom formatted: Test message")
 
 
 if __name__ == "__main__":
