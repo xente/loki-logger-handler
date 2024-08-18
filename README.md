@@ -4,25 +4,27 @@ A logging handler that sends log messages to Loki in JSON format
 
 ## Features
 
-* Logs pushed in JSON format
+* Logs pushed in JSON format by default
 * Custom labels definition
 * Allows defining loguru and logger extra keys as labels
 * Logger extra keys added automatically as keys into pushed JSON
 * Publish in batch of Streams
-* Publis logs compressed
+* Publish logs compressed
 
 ## Args
 
 * url (str): The URL of the Loki server.
 * labels (dict): A dictionary of labels to attach to each log message.
-* labelKeys (dict, optional): A dictionary of keys to extract from each log message and use as labels. Defaults to None.
-* timeout (int, optional): The time in seconds to wait before flushing the buffer. Defaults to 10.
+* label_keys (dict, optional): A dictionary of keys to extract from each log message and use as labels. Defaults to None.
+* additional_headers (dict, optional): Additional headers for the Loki request. Defaults to None.
+* timeout (int, optional): Timeout interval in seconds to wait before flushing the buffer. Defaults to 10.
 * compressed (bool, optional): Whether to compress the log messages before sending them to Loki. Defaults to True.
-* defaultFormatter (logging.Formatter, optional): The formatter to use for log messages. Defaults to LoggerFormatter().
+* loguru (bool, optional): Whether to use `LoguruFormatter`. Defaults to False.
+* default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,`LoggerFormatter` or `LoguruFormatter` will be used.
 
 ## Formatters
-* LoggerFormatter: Formater for default python logging implementation
-* LoguruFormatter: Formater for Loguru python library
+* LoggerFormatter: Formatter for default python logging implementation
+* LoguruFormatter: Formatter for Loguru python library
 
 ## How to use 
 
@@ -39,16 +41,14 @@ logger.setLevel(logging.DEBUG)
 # Create an instance of the custom handler
 custom_handler = LokiLoggerHandler(
     url=os.environ["LOKI_URL"],
-    labels={"application": "Test", "envornment": "Develop"},
-    labelKeys={},
+    labels={"application": "Test", "environment": "Develop"},
+    label_keys={},
     timeout=10,
 )
 # Create an instance of the custom handler
 
 logger.addHandler(custom_handler)
 logger.debug("Debug message", extra={'custom_field': 'custom_value'})
-
-
 ```
 
 
@@ -63,10 +63,10 @@ os.environ["LOKI_URL"]="https://USER:PASSWORD@logs-prod-eu-west-0.grafana.net/lo
 
 custom_handler = LokiLoggerHandler(
     url=os.environ["LOKI_URL"],
-    labels={"application": "Test", "envornment": "Develop"},
-    labelKeys={},
+    labels={"application": "Test", "environment": "Develop"},
+    label_keys={},
     timeout=10,
-    defaultFormatter=LoguruFormatter(),
+    default_formatter=LoguruFormatter(),
 )
 logger.configure(handlers=[{"sink": custom_handler, "serialize": True}])
 
@@ -130,18 +130,18 @@ logger.info(
 Loki query sample :
 
  ```
- {envornment="Develop"} |= `` | json
+ {environment="Develop"} |= `` | json
  ```
 
 Filter by level:
 
 ```
-{envornment="Develop", level="INFO"} |= `` | json
+{environment="Develop", level="INFO"} |= `` | json
 ```
 Filter by extra:
 
 ```
-{envornment="Develop", level="INFO"} |= `` | json | code=`200`
+{environment="Develop", level="INFO"} |= `` | json | code=`200`
 ```
 
 ## License
