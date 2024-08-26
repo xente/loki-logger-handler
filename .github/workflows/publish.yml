@@ -11,30 +11,35 @@ jobs:
   deploy:
 
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/loki-logger-handler
-    permissions:
-      id-token: write
-
+    strategy:
+      matrix:
+        python-version: ["2.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
+    
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python
+
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
-        python-version: '3.x'
+        python-version: ${{ matrix.python-version }}
+
     - name: Install Build Dependencies
-      run: pip install build twine 
+      run: |
+        pip install --upgrade pip
+        pip install build twine
 
     - name: Extract Tag Version
       id: extract_tag
-      run: echo ::set-output name=tag::${GITHUB_REF#refs/tags/}
+      run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
     - name: Set Package Version
-      run: sed -i "s/version=.*/version='${{ steps.extract_tag.outputs.tag }}',/" setup.py
+      run: |
+        sed -i "s/version=.*/version='${{ env.tag }}',/" setup.py
 
     - name: Build Distribution
       run: python -m build
 
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}

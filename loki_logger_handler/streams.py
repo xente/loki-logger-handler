@@ -12,10 +12,10 @@ class _LokiRequestEncoder(json.JSONEncoder):
             # Convert the Streams object to a dictionary format suitable for Loki
             return {"streams": [stream.__dict__ for stream in obj.streams]}
         # Use the default serialization method for other objects
-        return super().default(obj)
+        return super(_LokiRequestEncoder, self).default(obj)
 
 
-class Streams:
+class Streams(object):  # Explicitly inherit from object for Python 2 compatibility
     """
     A class representing a collection of Stream objects.
     

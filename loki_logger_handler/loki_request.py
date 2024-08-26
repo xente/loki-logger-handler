@@ -2,6 +2,11 @@ import requests
 import gzip
 import sys
 
+try:
+    from io import BytesIO as IO  # For Python 3
+except ImportError:
+    from StringIO import StringIO as IO  # For Python 2
+
 
 class LokiRequest:
     """
@@ -17,9 +22,11 @@ class LokiRequest:
         """
         Initialize the LokiRequest object with the server URL, compression option, and additional headers.
 
-        Args: url (str): The URL of the Loki server. compressed (bool, optional): Whether to compress the logs using
-        gzip. Defaults to False. additional_headers (dict, optional): Additional headers to include in the request.
-        Defaults to an empty dictionary.
+        Args:
+            url (str): The URL of the Loki server.
+            compressed (bool, optional): Whether to compress the logs using gzip. Defaults to False.
+            additional_headers (dict, optional): Additional headers to include in the request.
+            Defaults to an empty dictionary.
         """
         self.url = url
         self.compressed = compressed
@@ -41,18 +48,23 @@ class LokiRequest:
         try:
             if self.compressed:
                 self.headers["Content-Encoding"] = "gzip"
-                data = gzip.compress(data.encode("utf-8"))
+                buf = IO()
+                with gzip.GzipFile(fileobj=buf, mode='wb') as f:
+                    f.write(data.encode("utf-8"))
+                data = buf.getvalue()
 
             response = self.session.post(self.url, data=data, headers=self.headers)
             response.raise_for_status()
 
         except requests.RequestException as e:
-            sys.stderr.write(f"Error while sending logs: {e}\n")
+            sys.stderr.write("Error while sending logs: {}\n".format(e))
             if response is not None:
                 sys.stderr.write(
-                    f"Response status code: {response.status_code}, "
-                    f"response text: {response.text}, "
-                    f"post request URL: {response.request.url}\n"
+                    "Response status code: {}, "
+                    "response text: {}, "
+                    "post request URL: {}\n".format(
+                        response.status_code, response.text, response.request.url
+                    )
                 )
 
         finally:

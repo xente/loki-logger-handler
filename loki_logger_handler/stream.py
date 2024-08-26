@@ -1,6 +1,14 @@
 import json
 import time
 
+# Compatibility for Python 2 and 3
+try:
+    from time import time_ns  # Python 3.7+
+except ImportError:
+    import datetime
+    def time_ns():
+        return int((time.time() + datetime.datetime.now().microsecond / 1e6) * 1e9)
+
 
 class _StreamEncoder(json.JSONEncoder):
     """
@@ -11,7 +19,7 @@ class _StreamEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Stream):
             return obj.__dict__
-        return super().default(obj)
+        return super(_StreamEncoder, self).default(obj)
 
 
 class Stream(object):
@@ -57,7 +65,7 @@ class Stream(object):
             timestamp = str(int(value.get("timestamp") * 1e9))
         except (TypeError, ValueError):
             # Fallback to the current time in nanoseconds if the timestamp is missing or invalid
-            timestamp = str(time.time_ns())
+            timestamp = str(time_ns())
 
         formatted_value = json.dumps(value, ensure_ascii=False) if self.message_in_json_format else value
                     

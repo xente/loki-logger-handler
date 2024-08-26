@@ -8,18 +8,23 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["2.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
         with:
-          python-version: 3.x 
+          python-version: ${{ matrix.python-version }}
 
       - name: Install Dependencies
-        run: pip install -r requirements-test.txt  
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements-test.txt
 
       - name: Run Tests
-        run: python -m unittest discover tests/ 
+        run: python -m unittest discover tests/

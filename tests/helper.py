@@ -1,15 +1,15 @@
-class RecordValueMock:
+class RecordValueMock(object):  # Explicitly inherit from object for Python 2.7 compatibility
     def __init__(self, id, name):
         self.id = id
         self.name = name
 
 
-class LevelObject:
+class LevelObject(object):  # Explicitly inherit from object for Python 2.7 compatibility
     def __init__(self, name):
         self.name = name
 
 
-class TimeObject:
+class TimeObject(object):  # Explicitly inherit from object for Python 2.7 compatibility
     def __init__(self, timestamp):
         self._timestamp = timestamp
 
@@ -17,7 +17,7 @@ class TimeObject:
         return self._timestamp
 
 
-class FileObject:
+class FileObject(object):  # Explicitly inherit from object for Python 2.7 compatibility
     def __init__(self, name, path):
         self.name = name
         self.path = path

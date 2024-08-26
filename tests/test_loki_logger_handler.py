@@ -1,7 +1,12 @@
 import logging
 import unittest
 import pytest
-from unittest.mock import patch, Mock, MagicMock, call
+
+try:
+    from unittest.mock import patch, Mock, MagicMock, call  # Python 3.x
+except ImportError:
+    from mock import patch, Mock, MagicMock, call  # Python 2.7
+
 from loki_logger_handler.loki_logger_handler import LogLine, LokiLoggerHandler
 from loki_logger_handler.stream import Stream
 from loki_logger_handler.formatters.logger_formatter import LoggerFormatter
@@ -12,7 +17,7 @@ from tests.helper import LevelObject, RecordValueMock, TimeObject
 
 class CustomFormatter(logging.Formatter):
     def format(self, record):
-        return f"Custom formatted: {record.getMessage()}"
+        return "Custom formatted: {}".format(record.getMessage())
 
 
 class TestLokiLoggerHandler(unittest.TestCase):
