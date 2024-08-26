@@ -1,4 +1,11 @@
-import queue
+import sys
+
+# Compatibility for Python 2 and 3 queue module
+try:
+    import queue  # Python 3.x
+except ImportError:
+    import Queue as queue  # Python 2.7
+
 import threading
 import time
 import logging
@@ -52,7 +59,7 @@ class LokiLoggerHandler(logging.Handler):
             default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,
                 LoggerFormatter or LoguruFormatter will be used.
         """
-        super().__init__()
+        super(LokiLoggerHandler, self).__init__()
 
         self.labels = labels
         self.label_keys = label_keys if label_keys is not None else {}
@@ -62,8 +69,12 @@ class LokiLoggerHandler(logging.Handler):
         )
         self.request = LokiRequest(url=url, compressed=compressed, additional_headers=additional_headers or {})
         self.buffer = queue.Queue()
-        self.flush_thread = threading.Thread(target=self._flush, daemon=True)
+        self.flush_thread = threading.Thread(target=self._flush)
+        
+        # Set daemon for Python 2 and 3 compatibility
+        self.flush_thread.daemon = True
         self.flush_thread.start()
+        
         self.message_in_json_format = message_in_json_format
 
     def emit(self, record):
@@ -73,15 +84,12 @@ class LokiLoggerHandler(logging.Handler):
         Args:
             record (logging.LogRecord): The log record to be emitted.
         """
-        # noinspection PyBroadException
         try:
             formatted_record = self.logger_formatter.format(record)
             self._put(formatted_record)
         except Exception:
-            # Silently ignore any exceptions
-            pass
+            pass  # Silently ignore any exceptions
 
-    # noinspection PyBroadException
     def _flush(self):
         """
         Flush the buffer by sending the logs to the Loki server.
@@ -94,8 +102,7 @@ class LokiLoggerHandler(logging.Handler):
                 try:
                     self._send()
                 except Exception:
-                    # Silently ignore any exceptions
-                    pass
+                    pass  # Silently ignore any exceptions
             else:
                 time.sleep(self.timeout)
 

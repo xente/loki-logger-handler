@@ -1,4 +1,5 @@
 import traceback
+import logging
 
 
 class LoggerFormatter:
@@ -64,6 +65,21 @@ class LoggerFormatter:
             formatted["file"] = record.filename
             formatted["path"] = record.pathname
             formatted["line"] = record.lineno
-            formatted["stacktrace"] = traceback.format_exc()
+            formatted["stacktrace"] = self._format_stacktrace(record.exc_info)
 
         return formatted
+
+    @staticmethod
+    def _format_stacktrace(exc_info):
+        """
+        Format the stacktrace if exc_info is present.
+
+        Args:
+            exc_info (tuple or None): Exception info tuple as returned by sys.exc_info().
+
+        Returns:
+            str or None: Formatted stacktrace as a string, or None if exc_info is not provided.
+        """
+        if exc_info:
+            return "".join(traceback.format_exception(*exc_info))
+        return None

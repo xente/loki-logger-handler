@@ -1,12 +1,16 @@
 # loki_logger_handler
 
-A logging handler that sends log messages to Loki in JSON format
+[![PyPI](https://img.shields.io/pypi/v/loki_logger_handler?color=blue&label=pypi%20version)]()
+[![PyPI](https://img.shields.io/pypi/pyversions/loki_logger_handler.svg)]()
+[![Downloads](https://pepy.tech/badge/loki_logger_handler)](https://pepy.tech/project/loki_logger_handler)
+
+A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 
 ## Features
 
 * Logs pushed in JSON format by default
 * Custom labels definition
-* Allows defining loguru and logger extra keys as labels
+* Allows defining *loguru* and *logger* extra keys as labels
 * Logger extra keys added automatically as keys into pushed JSON
 * Publish in batch of Streams
 * Publish logs compressed
@@ -17,14 +21,14 @@ A logging handler that sends log messages to Loki in JSON format
 * labels (dict): A dictionary of labels to attach to each log message.
 * label_keys (dict, optional): A dictionary of keys to extract from each log message and use as labels. Defaults to None.
 * additional_headers (dict, optional): Additional headers for the Loki request. Defaults to None.
-* timeout (int, optional): Timeout interval in seconds to wait before flushing the buffer. Defaults to 10.
+* timeout (int, optional): Timeout interval in seconds to wait before flushing the buffer. Defaults to 10 seconds.
 * compressed (bool, optional): Whether to compress the log messages before sending them to Loki. Defaults to True.
 * loguru (bool, optional): Whether to use `LoguruFormatter`. Defaults to False.
 * default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,`LoggerFormatter` or `LoguruFormatter` will be used.
 
 ## Formatters
-* LoggerFormatter: Formatter for default python logging implementation
-* LoguruFormatter: Formatter for Loguru python library
+* **LoggerFormatter**: Formatter for default python logging implementation
+* **LoguruFormatter**: Formatter for Loguru python library
 
 ## How to use 
 
