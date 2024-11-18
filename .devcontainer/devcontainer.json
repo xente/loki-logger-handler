@@ -1,0 +1,39 @@
+{
+	"name": "Python 3",
+	"dockerComposeFile": [
+		"docker-compose.yml",
+		"docker-compose.extend.yml"
+	],
+	"service": "devcontainer",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"containerUser": "vscode",
+	"containerEnv": {
+		"HOME": "/home/vscode"
+	},
+	"features": {},
+	"forwardPorts": [
+		3000
+	],
+	"postCreateCommand": "pip3 install --user -r /workspaces/loki-logger-handler/requirements.txt",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.pylint",
+				"ms-python.vscode-pylance",
+				"ms-python.black-formatter",
+				"ms-python.debugpy"
+			],
+			"settings": {
+				"python.testing.unittestEnabled": false,
+				"python.testing.pytestEnabled": true,
+				"python.formatting.provider": "black",
+				"python.linting.mypyEnabled": true,
+				"python.linting.enabled": true,
+				"python.testing.pytestArgs": [
+					"tests"
+				]
+			}
+		}
+	}
+}

@@ -148,5 +148,54 @@ Filter by extra:
 {environment="Develop", level="INFO"} |= `` | json | code=`200`
 ```
 
+## **Development Environment: Dev Container**
+
+This project uses a **Dev Container** to provide a consistent and reproducible development environment. A Dev Container ensures all team members have the same tools, dependencies, and configurations, avoiding "works on my machine" issues.
+
+---
+
+### **Why Use a Dev Container?**
+
+- **Consistency**: Ensures everyone works in the same environment, regardless of the host OS.
+- **Isolation**: Keeps project dependencies separate from your system.
+- **Portability**: Easily onboard new developers by setting up the environment with a single command.
+- **Pre-configured Tools**: Includes all required tools and dependencies for the project.
+
+---
+
+### **Getting Started with the Dev Container**
+
+To start working with the Dev Container, follow these steps:
+
+#### **Prerequisites**
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop) (required for running containers).
+2. Install [Visual Studio Code (VS Code)](https://code.visualstudio.com/).
+3. Install the **Dev Containers** extension in VS Code:
+   - Go to Extensions (`Ctrl+Shift+X` / `Cmd+Shift+X`) and search for `Dev Containers`.
+   - Install the extension by Microsoft.
+
+#### **Setup Instructions**
+1. Clone the repository
+2. Open in VS Code
+3. Open the Command Palette (Ctrl+Shift+P / Cmd+Shift+P) and select: **Dev Containers: Reopen in Container**
+
+- VS Code will:
+  - Pull the Dev Container image. 
+  - Install all dependencies and tools specified.
+
+
+#### Resources
+
+The loki_logger_handler Dev Container provides the following resources:
+
+- Grafana: Accessible externally at http://localhost:3000.
+- Loki: Accessible internally at http://loki:3100/loki/api/v1/push.
+You can use this URL in your code as the publish endpoint for logs.
+Logs can be viewed and queried via the Grafana interface.
+
+```
+os.environ["LOKI_URL"]=http://loki:3100/loki/api/v1/push
+````
+
 ## License
 The MIT License
