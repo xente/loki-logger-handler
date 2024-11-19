@@ -1,11 +1,14 @@
 import sys
 
-# Compatibility for Python 2 and 3 queue module
-try:
-    import queue  # Python 3.x
-except ImportError:
-    import Queue as queue  # Python 2.7
+"""TODO Remove import for Python 2.x"""
+# # Compatibility for Python 2 and 3 queue module
+# try:
+#    import queue 
+#      # Python 3.x
+# except ImportError:
+#     import Queue as queue  # Python 2.7
 
+import queue 
 import threading
 import time
 import logging
@@ -42,7 +45,7 @@ class LokiLoggerHandler(logging.Handler):
         timeout=10,
         compressed=True,
         loguru=False,
-        default_formatter=None
+        default_formatter=LoggerFormatter()
     ):
         """
         Initialize the LokiLoggerHandler object.
@@ -64,15 +67,18 @@ class LokiLoggerHandler(logging.Handler):
         self.labels = labels
         self.label_keys = label_keys if label_keys is not None else {}
         self.timeout = timeout
+        """ TODO Test behavior """
+        #Old code
         self.logger_formatter = default_formatter if default_formatter is not None else (
             LoguruFormatter() if loguru else LoggerFormatter()
         )
+        #New code
+        self.setFormatter(LoguruFormatter()) if loguru else self.setFormatter(default_formatter)
         self.request = LokiRequest(url=url, compressed=compressed, additional_headers=additional_headers or {})
         self.buffer = queue.Queue()
-        self.flush_thread = threading.Thread(target=self._flush)
+        self.flush_thread = threading.Thread(target=self._flush, daemon=True)
         
         # Set daemon for Python 2 and 3 compatibility
-        self.flush_thread.daemon = True
         self.flush_thread.start()
         
         self.message_in_json_format = message_in_json_format
@@ -85,7 +91,9 @@ class LokiLoggerHandler(logging.Handler):
             record (logging.LogRecord): The log record to be emitted.
         """
         try:
+            """ TODO Test behavior """
             formatted_record = self.logger_formatter.format(record)
+            a = self.formatter.format(record)
             self._put(formatted_record)
         except Exception:
             pass  # Silently ignore any exceptions

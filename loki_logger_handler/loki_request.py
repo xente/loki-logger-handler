@@ -2,6 +2,7 @@ import requests
 import gzip
 import sys
 
+"""TODO Remove import for Python 2.x"""
 try:
     from io import BytesIO as IO  # For Python 3
 except ImportError:
