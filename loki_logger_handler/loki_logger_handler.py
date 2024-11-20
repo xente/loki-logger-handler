@@ -11,7 +11,6 @@ import time
 import logging
 import atexit
 from loki_logger_handler.formatters.logger_formatter import LoggerFormatter
-from loki_logger_handler.formatters.loguru_formatter import LoguruFormatter
 from loki_logger_handler.streams import Streams
 from loki_logger_handler.loki_request import LokiRequest
 from loki_logger_handler.stream import Stream
@@ -41,7 +40,6 @@ class LokiLoggerHandler(logging.Handler):
         message_in_json_format=True,
         timeout=10,
         compressed=True,
-        loguru=False,
         default_formatter=None
     ):
         """
@@ -55,7 +53,6 @@ class LokiLoggerHandler(logging.Handler):
             message_in_json_format (bool): Whether to format log values as JSON.
             timeout (int, optional): Timeout interval for flushing logs. Defaults to 10 seconds.
             compressed (bool, optional): Whether to compress the logs using gzip. Defaults to True.
-            loguru (bool, optional): Whether to use LoguruFormatter. Defaults to False.
             default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,
                 LoggerFormatter or LoguruFormatter will be used.
         """
@@ -64,9 +61,7 @@ class LokiLoggerHandler(logging.Handler):
         self.labels = labels
         self.label_keys = label_keys if label_keys is not None else {}
         self.timeout = timeout
-        self.logger_formatter = default_formatter if default_formatter is not None else (
-            LoguruFormatter() if loguru else LoggerFormatter()
-        )
+        self.formatter = default_formatter if default_formatter is not None else LoggerFormatter()
         self.request = LokiRequest(url=url, compressed=compressed, additional_headers=additional_headers or {})
         self.buffer = queue.Queue()
         self.flush_thread = threading.Thread(target=self._flush)
@@ -85,7 +80,7 @@ class LokiLoggerHandler(logging.Handler):
             record (logging.LogRecord): The log record to be emitted.
         """
         try:
-            formatted_record = self.logger_formatter.format(record)
+            formatted_record = self.formatter.format(record)
             self._put(formatted_record)
         except Exception:
             pass  # Silently ignore any exceptions

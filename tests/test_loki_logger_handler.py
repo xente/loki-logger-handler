@@ -48,7 +48,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
 
         # Assert
         mock_formatter.format.assert_called_with(record)
-        mock_put.assert_called_with(handler.logger_formatter.format.return_value)
+        mock_put.assert_called_with(handler.formatter.format.return_value)
 
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
     def test_emit_no_record(self, mock_thread):
@@ -337,7 +337,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler.emit(record)
 
         # Assert
-        formatted_message = handler.logger_formatter.format(record)
+        formatted_message = handler.formatter.format(record)
         self.assertEqual(formatted_message, "Custom formatted: Test message")
 
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
@@ -370,7 +370,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         )
 
         record = MagicMock()
-        handler.logger_formatter.format = Mock(side_effect=Exception("Formatter Error"))
+        handler.formatter.format = Mock(side_effect=Exception("Formatter Error"))
 
         handler.emit(record)
 
