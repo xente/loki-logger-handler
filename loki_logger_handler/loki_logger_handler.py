@@ -40,7 +40,7 @@ class LokiLoggerHandler(logging.Handler):
         message_in_json_format=True,
         timeout=10,
         compressed=True,
-        default_formatter=None
+        default_formatter=LoggerFormatter()
     ):
         """
         Initialize the LokiLoggerHandler object.
@@ -61,7 +61,7 @@ class LokiLoggerHandler(logging.Handler):
         self.labels = labels
         self.label_keys = label_keys if label_keys is not None else {}
         self.timeout = timeout
-        self.formatter = default_formatter if default_formatter is not None else LoggerFormatter()
+        self.formatter = default_formatter
         self.request = LokiRequest(url=url, compressed=compressed, additional_headers=additional_headers or {})
         self.buffer = queue.Queue()
         self.flush_thread = threading.Thread(target=self._flush)
