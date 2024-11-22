@@ -59,7 +59,8 @@ logger.debug("Debug message", extra={'custom_field': 'custom_value'})
 ### Loguru
 
 ```python
-from loki_logger_handler.loki_logger_handler import LokiLoggerHandler, LoguruFormatter
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
+from loki_logger_handler.formatters.loguru_formatter import LoguruFormatter
 from loguru import logger
 import os 
 
