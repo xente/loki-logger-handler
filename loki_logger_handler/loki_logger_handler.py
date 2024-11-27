@@ -71,6 +71,8 @@ class LokiLoggerHandler(logging.Handler):
         self.flush_thread.start()
         
         self.message_in_json_format = message_in_json_format
+        
+        self.send_error = None
 
     def emit(self, record):
         """
@@ -117,7 +119,11 @@ class LokiLoggerHandler(logging.Handler):
 
         if temp_streams:
             streams = Streams(list(temp_streams.values()))
-            self.request.send(streams.serialize())
+            request_error = self.request.send(streams.serialize())
+            if request_error:
+                self.send_error = request_error
+            else:
+                self.send_error = None
 
     def write(self, message):
         """
