@@ -169,13 +169,13 @@ class LogLine:
     @staticmethod
     def _key_from_labels(labels):
         """
-        Generate a unique key from the labels.
+        Generate a unique key from the labels values.
 
         Args:
             labels (dict): Labels to generate the key from.
 
         Returns:
-            str: A unique key generated from the labels.
+            str: A unique key generated from the labels values.
         """
-        key_list = sorted(labels.keys())
+        key_list = sorted(labels.values())
         return "_".join(key_list)
