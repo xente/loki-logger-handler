@@ -6,14 +6,17 @@ try:
 except ImportError:
     import Queue as queue  # Python 2.7
 
+import atexit
+import logging
 import threading
 import time
-import logging
-import atexit
+
+import requests
+
 from loki_logger_handler.formatters.logger_formatter import LoggerFormatter
-from loki_logger_handler.streams import Streams
 from loki_logger_handler.loki_request import LokiRequest
 from loki_logger_handler.stream import Stream
+from loki_logger_handler.streams import Streams
 
 
 class LokiLoggerHandler(logging.Handler):
@@ -40,7 +43,7 @@ class LokiLoggerHandler(logging.Handler):
         message_in_json_format=True,
         timeout=10,
         compressed=True,
-        default_formatter=LoggerFormatter()
+        default_formatter=LoggerFormatter(),
     ):
         """
         Initialize the LokiLoggerHandler object.
@@ -62,16 +65,18 @@ class LokiLoggerHandler(logging.Handler):
         self.label_keys = label_keys if label_keys is not None else {}
         self.timeout = timeout
         self.formatter = default_formatter
-        self.request = LokiRequest(url=url, compressed=compressed, additional_headers=additional_headers or {})
+        self.request = LokiRequest(
+            url=url, compressed=compressed, additional_headers=additional_headers or {}
+        )
         self.buffer = queue.Queue()
         self.flush_thread = threading.Thread(target=self._flush)
-        
+
         # Set daemon for Python 2 and 3 compatibility
         self.flush_thread.daemon = True
         self.flush_thread.start()
-        
+
         self.message_in_json_format = message_in_json_format
-        
+
         self.send_error = None
 
     def emit(self, record):
@@ -119,11 +124,10 @@ class LokiLoggerHandler(logging.Handler):
 
         if temp_streams:
             streams = Streams(list(temp_streams.values()))
-            request_error = self.request.send(streams.serialize())
-            if request_error:
-                self.send_error = request_error
-            else:
-                self.send_error = None
+            try:
+                self.request.send(streams.serialize())
+            except requests.RequestException as e:
+                self.send_error = e
 
     def write(self, message):
         """

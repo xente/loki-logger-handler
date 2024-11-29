@@ -47,7 +47,6 @@ class LokiRequest:
                                                       during sending or None if everything was successfull.
         """
         response = None
-        error = None
         try:
             if self.compressed:
                 self.headers["Content-Encoding"] = "gzip"
@@ -61,7 +60,7 @@ class LokiRequest:
 
         except requests.RequestException as e:
             sys.stderr.write("Error while sending logs: {}\n".format(e))
-            error = e
+            
             if response is not None:
                 sys.stderr.write(
                     "Response status code: {}, "
@@ -70,8 +69,8 @@ class LokiRequest:
                         response.status_code, response.text, response.request.url
                     )
                 )
+            raise e   
 
         finally:
             if response:
                 response.close()
-        return error
