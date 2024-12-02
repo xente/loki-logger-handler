@@ -42,9 +42,11 @@ class LokiRequest:
         Args:
             data (str): The log data to be sent.
 
-        Returns:
-            error (requests.RequestException | None): Returns the error occurs
-                                                      during sending or None if everything was successfull.
+        Raises:
+            requests.RequestException
+
+        Raises:
+            requests.RequestException: If the request fails.
         """
         response = None
         try:
