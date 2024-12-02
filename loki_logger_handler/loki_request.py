@@ -43,9 +43,6 @@ class LokiRequest:
             data (str): The log data to be sent.
 
         Raises:
-            requests.RequestException
-
-        Raises:
             requests.RequestException: If the request fails.
         """
         response = None
