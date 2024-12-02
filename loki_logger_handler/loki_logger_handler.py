@@ -43,7 +43,7 @@ class LokiLoggerHandler(logging.Handler):
         message_in_json_format=True,
         timeout=10,
         compressed=True,
-        default_formatter=LoggerFormatter(),
+        default_formatter=LoggerFormatter()
     ):
         """
         Initialize the LokiLoggerHandler object.
