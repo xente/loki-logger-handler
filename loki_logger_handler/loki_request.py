@@ -18,6 +18,7 @@ class LokiRequest:
         headers (dict): Additional headers to include in the request.
         session (requests.Session): The session used for making HTTP requests.
     """
+
     def __init__(self, url, compressed=False, additional_headers=None):
         """
         Initialize the LokiRequest object with the server URL, compression option, and additional headers.
@@ -49,7 +50,7 @@ class LokiRequest:
             if self.compressed:
                 self.headers["Content-Encoding"] = "gzip"
                 buf = IO()
-                with gzip.GzipFile(fileobj=buf, mode='wb') as f:
+                with gzip.GzipFile(fileobj=buf, mode="wb") as f:
                     f.write(data.encode("utf-8"))
                 data = buf.getvalue()
 
@@ -58,6 +59,7 @@ class LokiRequest:
 
         except requests.RequestException as e:
             sys.stderr.write("Error while sending logs: {}\n".format(e))
+            
             if response is not None:
                 sys.stderr.write(
                     "Response status code: {}, "
@@ -66,6 +68,7 @@ class LokiRequest:
                         response.status_code, response.text, response.request.url
                     )
                 )
+            raise e   
 
         finally:
             if response:
