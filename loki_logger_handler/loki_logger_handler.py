@@ -9,6 +9,7 @@ except ImportError:
 import threading
 import time
 import logging
+import json
 import atexit
 from loki_logger_handler.formatters.logger_formatter import LoggerFormatter
 from loki_logger_handler.streams import Streams
@@ -29,6 +30,7 @@ class LokiLoggerHandler(logging.Handler):
         buffer (queue.Queue): Buffer to store log records before sending.
         flush_thread (threading.Thread): Thread for periodically flushing logs.
         message_in_json_format (bool): Whether to format log values as JSON.
+        max_stream_size (int): Maximum Stream Size in bytes before forcefully sending logs.
     """
 
     def __init__(
@@ -40,7 +42,8 @@ class LokiLoggerHandler(logging.Handler):
         message_in_json_format=True,
         timeout=10,
         compressed=True,
-        default_formatter=LoggerFormatter()
+        default_formatter=LoggerFormatter(),
+        max_stream_size=0,
     ):
         """
         Initialize the LokiLoggerHandler object.
@@ -55,6 +58,9 @@ class LokiLoggerHandler(logging.Handler):
             compressed (bool, optional): Whether to compress the logs using gzip. Defaults to True.
             default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,
                 LoggerFormatter or LoguruFormatter will be used.
+            max_stream_size (int, optional): Max stream size in bytes to forcefully send to server instead of
+                waiting for timeout. If max stream size is 0 forcefully sending by byte size is disabled.
+                Defaults to 0.
         """
         super(LokiLoggerHandler, self).__init__()
 
@@ -62,15 +68,20 @@ class LokiLoggerHandler(logging.Handler):
         self.label_keys = label_keys if label_keys is not None else {}
         self.timeout = timeout
         self.formatter = default_formatter
-        self.request = LokiRequest(url=url, compressed=compressed, additional_headers=additional_headers or {})
+        self.request = LokiRequest(
+            url=url, compressed=compressed, additional_headers=additional_headers or {}
+        )
         self.buffer = queue.Queue()
         self.flush_thread = threading.Thread(target=self._flush)
-        
+
         # Set daemon for Python 2 and 3 compatibility
         self.flush_thread.daemon = True
         self.flush_thread.start()
-        
+
         self.message_in_json_format = message_in_json_format
+        self.max_stream_size = max_stream_size
+        self._current_stream_size = 0
+        self._force_send = False
 
     def emit(self, record):
         """
@@ -99,13 +110,22 @@ class LokiLoggerHandler(logging.Handler):
                 except Exception:
                     pass  # Silently ignore any exceptions
             else:
-                time.sleep(self.timeout)
+                for i in range(self.timeout * 10):
+                    time.sleep(0.1)
+                    if self._force_send:
+                        try:
+                            self._send()
+                        except Exception:
+                            pass  # Silently ignore any exceptions
 
     def _send(self):
         """
         Send the buffered logs to the Loki server.
         """
         temp_streams = {}
+        # reset indicators for forcefully sending
+        self._force_send = False
+        self._current_stream_size = 0
 
         while not self.buffer.empty():
             log = self.buffer.get()
@@ -141,7 +161,16 @@ class LokiLoggerHandler(logging.Handler):
             if key in log_record:
                 labels[key] = log_record[key]
 
-        self.buffer.put(LogLine(labels, log_record))
+        log_line = LogLine(labels, log_record)
+        log_size = log_line.size()
+        self.buffer.put(log_line)
+        self.current_stream_size += log_size
+
+        if (
+            self.max_stream_size > 0
+            and self._current_stream_size >= self.max_stream_size
+        ):
+            self._force_send = True
 
 
 class LogLine:
@@ -151,7 +180,7 @@ class LogLine:
     Attributes:
         labels (dict): Labels associated with the log line.
         key (str): A unique key generated from the labels.
-        line (str): The actual log line content.
+        line (dict|str): The actual log line content.
     """
 
     def __init__(self, labels, line):
@@ -160,11 +189,30 @@ class LogLine:
 
         Args:
             labels (dict): Labels associated with the log line.
-            line (str): The actual log line content.
+            line (dict|str): The actual log line content.
         """
         self.labels = labels
         self.key = self._key_from_labels(labels)
         self.line = line
+
+    def size(self):
+        """
+        Calculate the approximate size of the log line in bytes.
+
+        Returns:
+            int: The size of the log line in bytes.
+        """
+        # Convert labels to a JSON string and calculate its size
+        labels_size = len(json.dumps(self.labels).encode("utf-8"))
+        # Calculate the size of the line
+        if isinstance(self.line, str):
+            line_size = len(self.line.encode("utf-8"))
+        elif isinstance(self.line, dict):
+            line_size = len(json.dumps(self.line).encode("utf-8"))
+        else:
+            line_size = 0
+        # Total size is the sum of labels size and line size
+        return labels_size + line_size
 
     @staticmethod
     def _key_from_labels(labels):
