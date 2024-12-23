@@ -71,6 +71,8 @@ class LokiLoggerHandler(logging.Handler):
         self.buffer = queue.Queue()
         self.flush_thread = threading.Thread(target=self._flush)
 
+        self.flush_event = threading.Event()
+
         # Set daemon for Python 2 and 3 compatibility
         self.flush_thread.daemon = True
         self.flush_thread.start()
@@ -100,13 +102,19 @@ class LokiLoggerHandler(logging.Handler):
         atexit.register(self._send)
 
         while True:
+
+            # Wait until flush_event is set or timeout elapses
+            self.flush_event.wait(timeout=self.timeout)
+            
+            # Reset the event for the next cycle
+            self.flush_event.clear()
+
             if not self.buffer.empty():
                 try:
                     self._send()
                 except Exception:
                     pass  # Silently ignore any exceptions
-            else:
-                time.sleep(self.timeout)
+
 
     def _send(self):
         """
