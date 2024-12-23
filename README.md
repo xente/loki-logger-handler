@@ -26,6 +26,9 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 * loguru (bool, optional): Whether to use `LoguruFormatter`. Defaults to False.
 * default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,`LoggerFormatter` or `LoguruFormatter` will be used.
 * enable_self_errors (bool, optional): Set to True to show Hanlder errors on console. Defaults to False
+### Loki 3.0 
+* enable_structured_metadata (bool, optional):  Whether to include structured metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
+* global_metadata (type, optional): Description of global_metadata. Defaults to None. Only supported for Loki 3.0 and above
 
 ## Formatters
 * **LoggerFormatter**: Formatter for default python logging implementation
@@ -150,7 +153,123 @@ Filter by extra:
 {environment="Develop", level="INFO"} |= `` | json | code=`200`
 ```
 
-## **Development Environment: Dev Container**
+
+## Loki Structured Metadata
+
+Loki structured metadata to include additional context in your logs. This can be useful for filtering and querying logs in Loki.
+
+We can add metadata in 3 ways:
+
+1. Defile static loki_metadata that will be injected into all logs lines
+2. Use logger extra options adding metadata inside `loki_metadata` key
+3. 
+
+### Example global metadata
+
+```python
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
+import logging
+import os
+
+# Set up logging
+logger = logging.getLogger("custom_logger")
+logger.setLevel(logging.DEBUG)
+
+# Create an instance of the custom handler with structured metadata
+custom_handler = LokiLoggerHandler(
+  url=os.environ["LOKI_URL"],
+  labels={"application": "Test", "environment": "Develop"},
+  label_keys={},
+  timeout=10,
+  enable_structured_metadata=True,
+  loki_metadata={"service": "user-service", "version": "1.0.0"}
+)
+
+logger.addHandler(custom_handler)
+
+```
+
+In this example, the `loki_metadata` dictionary includes metadata that will be attached to every log message. The `enable_structured_metadata` flag ensures that this metadata is included in the logs.
+
+### Example log metadata
+
+
+```python
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
+import logging
+import os
+
+# Set up logging
+logger = logging.getLogger("custom_logger")
+logger.setLevel(logging.DEBUG)
+
+# Create an instance of the custom handler with structured metadata
+custom_handler = LokiLoggerHandler(
+  url=os.environ["LOKI_URL"],
+  labels={"application": "Test", "environment": "Develop"},
+  label_keys={},
+  timeout=10,
+  enable_structured_metadata=True,
+  loki_metadata={"service": "user-service", "version": "1.0.0"}
+)
+
+logger.addHandler(custom_handler)
+
+logger.info("User acction", extra={"loki_metadata": {"user_id": 12345, "operation": "update", "status": "success"}})
+
+```
+
+```python
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
+import logging
+import os
+
+# Set up logging
+logger = logging.getLogger("custom_logger")
+logger.setLevel(logging.DEBUG)
+
+# Create an instance of the custom handler with structured metadata
+custom_handler = LokiLoggerHandler(
+  url=os.environ["LOKI_URL"],
+  labels={"application": "Test", "environment": "Develop"},
+  label_keys={},
+  timeout=10,
+  enable_structured_metadata=True,
+  loki_metadata={"service": "user-service", "version": "1.0.0"},
+  loki_metadata_keys=["trace_id"]
+)
+
+logger.addHandler(custom_handler)
+
+logger.info("User acction", extra={"loki_metadata": {"user_id": 12345, "operation": "update", "status": "success"}, "trace_id": "000-000000-0000"})
+
+```
+
+
+### Querying Logs with Structured Metadata
+
+You can query logs in Loki using the structured metadata.
+
+This query will return all logs where the `service` metadata is set to `user-service`.
+
+```
+{application="Test"} |= `` | service="user-service"
+```
+
+This query will return all logs where the `user_id` metadata is set to `12345`.
+
+```
+{application="Test"} |= `` | user_id="12345"
+```
+
+This query will return all logs where the `trace_id` metadata is set to `000-000000-0000`.
+
+```
+{application="Test"} |= `` | trace_id="000-000000-0000"
+```
+
+
+## Development Environment: Dev Container
 
 This project uses a **Dev Container** to provide a consistent and reproducible development environment. A Dev Container ensures all team members have the same tools, dependencies, and configurations, avoiding "works on my machine" issues.
 

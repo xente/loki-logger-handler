@@ -18,16 +18,6 @@ from loki_logger_handler.streams import Streams
 class LokiLoggerHandler(logging.Handler):
     """
     A custom logging handler that sends logs to a Loki server.
-
-    Attributes:
-        labels (dict): Default labels for the logs.
-        label_keys (dict): Specific log record keys to extract as labels.
-        timeout (int): Timeout interval for flushing logs.
-        logger_formatter (logging.Formatter): Formatter for log records.
-        request (LokiRequest): Loki request object for sending logs.
-        buffer (queue.Queue): Buffer to store log records before sending.
-        flush_thread (threading.Thread): Thread for periodically flushing logs.
-        message_in_json_format (bool): Whether to format log values as JSON.
     """
 
     def __init__(
@@ -40,7 +30,11 @@ class LokiLoggerHandler(logging.Handler):
         timeout=10,
         compressed=True,
         default_formatter=LoggerFormatter(),
-        enable_self_errors=False
+        enable_self_errors=False,
+        enable_structured_loki_metadata=False,
+        loki_metadata=None,
+        loki_metadata_keys=None
+
     ):
         """
         Initialize the LokiLoggerHandler object.
@@ -53,10 +47,11 @@ class LokiLoggerHandler(logging.Handler):
             message_in_json_format (bool): Whether to format log values as JSON.
             timeout (int, optional): Timeout interval for flushing logs. Defaults to 10 seconds.
             compressed (bool, optional): Whether to compress the logs using gzip. Defaults to True.
-            default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,
-                LoggerFormatter or LoguruFormatter will be used.
-            enable_self_errors (bool, optional): Set to 
-                True to show Hanlder errors on console. Default False
+            default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided, LoggerFormatter or LoguruFormatter will be used.
+            enable_self_errors (bool, optional): Set to True to show Hanlder errors on console. Default False
+            enable_structured_loki_metadata (bool, optional):  Whether to include structured loki_metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
+            loki_metadata (dict, optional): Default loki_metadata values. Defaults to None. Only supported for Loki 3.0 and above
+            loki_metadata_keys (arrray, optional): Specific log record keys to extract as loki_metadata. Only supported for Loki 3.0 and above
         """
         super(LokiLoggerHandler, self).__init__()
 
@@ -77,6 +72,7 @@ class LokiLoggerHandler(logging.Handler):
         self.request = LokiRequest(
             url=url, compressed=compressed, additional_headers=additional_headers or {}
         )
+
         self.buffer = queue.Queue()
         self.flush_thread = threading.Thread(target=self._flush)
 
@@ -88,10 +84,11 @@ class LokiLoggerHandler(logging.Handler):
 
         self.message_in_json_format = message_in_json_format
 
-        #Halndler working with errors
+        # Halndler working with errors
         self.error = False
-
-
+        self.enable_structured_loki_metadata = enable_structured_loki_metadata
+        self.loki_metadata = loki_metadata
+        self.loki_metadata_keys = loki_metadata_keys if loki_metadata_keys is not None else []
 
     def emit(self, record):
         """
@@ -101,12 +98,10 @@ class LokiLoggerHandler(logging.Handler):
             record (logging.LogRecord): The log record to be emitted.
         """
         try:
-            formatted_record = self.formatter.format(record)
-            self._put(formatted_record)
+            formatted_record, log_loki_metadata = self.formatter.format(record)
+            self._put(formatted_record, log_loki_metadata)
         except Exception as e:
-            if self.enable_self_errors:
-                self.debug_logger.error("Unexpected error: %s",e, exc_info=True)
-            self.error = True
+             self.handle_unexpected_error(e)
 
     def _flush(self):
         """
@@ -119,7 +114,7 @@ class LokiLoggerHandler(logging.Handler):
 
             # Wait until flush_event is set or timeout elapses
             self.flush_event.wait(timeout=self.timeout)
-            
+
             # Reset the event for the next cycle
             self.flush_event.clear()
 
@@ -127,9 +122,9 @@ class LokiLoggerHandler(logging.Handler):
                 try:
                     self._send()
                 except Exception as e:
-                    if self.enable_self_errors:
-                        self.debug_logger.error("Unexpected error: %s",e, exc_info=True)
-                    self.error = True                 
+                    self.handle_unexpected_error(e)
+
+
 
     def _send(self):
         """
@@ -140,19 +135,19 @@ class LokiLoggerHandler(logging.Handler):
         while not self.buffer.empty():
             log = self.buffer.get()
             if log.key not in temp_streams:
-                stream = Stream(log.labels, self.message_in_json_format)
+                stream = Stream(log.labels, self.loki_metadata,
+                                self.message_in_json_format)
                 temp_streams[log.key] = stream
 
-            temp_streams[log.key].append_value(log.line)
+            temp_streams[log.key].append_value(log.line, log.loki_metadata)
 
         if temp_streams:
             streams = Streams(list(temp_streams.values()))
             try:
                 self.request.send(streams.serialize())
             except requests.RequestException as e:
-                if self.enable_self_errors:
-                    self.debug_logger.error("Unexpected error: %s",e, exc_info=True)
-                self.error = True
+                 self.handle_unexpected_error(e)
+
 
     def write(self, message):
         """
@@ -163,7 +158,7 @@ class LokiLoggerHandler(logging.Handler):
         """
         self.emit(message.record)
 
-    def _put(self, log_record):
+    def _put(self, log_record, log_loki_metadata):
         """
         Put a log record into the buffer.
 
@@ -172,12 +167,71 @@ class LokiLoggerHandler(logging.Handler):
         """
         labels = self.labels.copy()
 
+        self.assign_labels_from_log(log_record, labels)
+
+        if self.enable_structured_loki_metadata:
+            self.extract_and_clean_metadata(log_record, log_loki_metadata)
+
+            log_line = LogLine(labels, log_record, log_loki_metadata)
+        else:
+            log_line = LogLine(labels, log_record)
+
+        self.buffer.put(log_line)
+
+    def assign_labels_from_log(self, log_record, labels):
+        """
+        This method iterates over the keys specified in `self.label_keys` and checks if each key is present in the `log_record`.
+        If a key is found in the `log_record`, it assigns the corresponding value from the `log_record` to the `labels` dictionary.
+
+        Args:
+            log_record (dict): The log record containing potential label keys and values.
+            labels (dict): The dictionary to which the labels will be assigned.
+
+        Returns:
+            None
+        """
         for key in self.label_keys:
             if key in log_record:
                 labels[key] = log_record[key]
 
-        self.buffer.put(LogLine(labels, log_record))
+    def extract_and_clean_metadata(self, log_record, log_loki_metadata):
+        """
+        This method iterates over the keys defined in `self.loki_metadata_keys` and checks if they are present
+        in the `log_record`. If a key is found, it is added to the `log_loki_metadata` dictionary and marked
+        for deletion from the `log_record`. After collecting all keys to be deleted, it removes them from the
+        `log_record`.
 
+        Args:
+            log_record (dict): The original log record containing various log data.
+            log_loki_metadata (dict): The dictionary where extracted metadata will be stored.
+
+        Returns:
+            None
+        """
+        keys_to_delete = []
+        for key in self.loki_metadata_keys:
+            if key in log_record:
+                log_loki_metadata[key] = log_record[key]
+                keys_to_delete.append(key)
+
+        for key in keys_to_delete:
+            del log_record[key]
+
+
+    def handle_unexpected_error(self, e):
+        """
+        Handles unexpected errors by logging them and setting the error flag.
+
+        Args:
+            e (Exception): The exception that was raised.
+
+        Returns:
+            None
+        """
+        if self.enable_self_errors:
+            self.debug_logger.error(
+                            "Unexpected error: %s", e, exc_info=True)
+        self.error = True
 
 class LogLine:
     """
@@ -189,7 +243,7 @@ class LogLine:
         line (str): The actual log line content.
     """
 
-    def __init__(self, labels, line):
+    def __init__(self, labels, line, loki_metadata=None):
         """
         Initialize a LogLine object.
 
@@ -200,6 +254,7 @@ class LogLine:
         self.labels = labels
         self.key = self._key_from_labels(labels)
         self.line = line
+        self.loki_metadata = loki_metadata
 
     @staticmethod
     def _key_from_labels(labels):
