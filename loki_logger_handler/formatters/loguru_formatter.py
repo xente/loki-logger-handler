@@ -39,6 +39,7 @@ class LoguruFormatter:
             "level": record.get("level").name.upper(),
         }
 
+        loki_metadata = {}
         # Update with extra fields if available
         extra = record.get("extra", {})
         if isinstance(extra, dict):
@@ -47,6 +48,12 @@ class LoguruFormatter:
                 formatted.update(extra["extra"])
             else:
                 formatted.update(extra)
+            
+            loki_metadata = formatted.get("loki_metadata")
+            if loki_metadata:
+                if not isinstance(loki_metadata, dict):
+                    loki_metadata = {}
+                del formatted["loki_metadata"]
 
         # Check if the log level indicates an error (case-insensitive and can be partial)
         if formatted["level"].startswith("ER"):
@@ -68,4 +75,4 @@ class LoguruFormatter:
                     )
                 formatted["stacktrace"] = "".join(formatted_traceback)
 
-        return formatted
+        return formatted, loki_metadata

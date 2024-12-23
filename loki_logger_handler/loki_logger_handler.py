@@ -40,7 +40,10 @@ class LokiLoggerHandler(logging.Handler):
         timeout=10,
         compressed=True,
         default_formatter=LoggerFormatter(),
-        enable_self_errors=False
+        enable_self_errors=False,
+        enable_structured_metadata=False,
+        global_metadata=None
+
     ):
         """
         Initialize the LokiLoggerHandler object.
@@ -57,6 +60,8 @@ class LokiLoggerHandler(logging.Handler):
                 LoggerFormatter or LoguruFormatter will be used.
             enable_self_errors (bool, optional): Set to 
                 True to show Hanlder errors on console. Default False
+            enable_structured_metadata (bool, optional):  Whether to include structured metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
+            global_metadata (type, optional): Description of global_metadata. Defaults to None. Only supported for Loki 3.0 and above
         """
         super(LokiLoggerHandler, self).__init__()
 
@@ -90,8 +95,8 @@ class LokiLoggerHandler(logging.Handler):
 
         #Halndler working with errors
         self.error = False
-
-
+        self.enable_structured_metadata = enable_structured_metadata
+        self.global_metadata = global_metadata
 
     def emit(self, record):
         """
@@ -101,8 +106,8 @@ class LokiLoggerHandler(logging.Handler):
             record (logging.LogRecord): The log record to be emitted.
         """
         try:
-            formatted_record = self.formatter.format(record)
-            self._put(formatted_record)
+            formatted_record, log_metadata = self.formatter.format(record)
+            self._put(formatted_record, log_metadata)
         except Exception as e:
             if self.enable_self_errors:
                 self.debug_logger.error("Unexpected error: %s",e, exc_info=True)
@@ -140,10 +145,10 @@ class LokiLoggerHandler(logging.Handler):
         while not self.buffer.empty():
             log = self.buffer.get()
             if log.key not in temp_streams:
-                stream = Stream(log.labels, self.message_in_json_format)
+                stream = Stream(log.labels,self.global_metadata, self.message_in_json_format)
                 temp_streams[log.key] = stream
 
-            temp_streams[log.key].append_value(log.line)
+            temp_streams[log.key].append_value(log.line, log.metadata)
 
         if temp_streams:
             streams = Streams(list(temp_streams.values()))
@@ -163,7 +168,7 @@ class LokiLoggerHandler(logging.Handler):
         """
         self.emit(message.record)
 
-    def _put(self, log_record):
+    def _put(self, log_record, log_metadata):
         """
         Put a log record into the buffer.
 
@@ -175,8 +180,13 @@ class LokiLoggerHandler(logging.Handler):
         for key in self.label_keys:
             if key in log_record:
                 labels[key] = log_record[key]
-
-        self.buffer.put(LogLine(labels, log_record))
+        
+        if self.enable_structured_metadata:
+            log_line = LogLine(labels, log_record, log_metadata)
+        else:
+            log_line = LogLine(labels, log_record)
+        
+        self.buffer.put(log_line)
 
 
 class LogLine:
@@ -189,7 +199,7 @@ class LogLine:
         line (str): The actual log line content.
     """
 
-    def __init__(self, labels, line):
+    def __init__(self, labels, line, metadata=None):
         """
         Initialize a LogLine object.
 
@@ -200,6 +210,7 @@ class LogLine:
         self.labels = labels
         self.key = self._key_from_labels(labels)
         self.line = line
+        self.metadata = metadata
 
     @staticmethod
     def _key_from_labels(labels):
