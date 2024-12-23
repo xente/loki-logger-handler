@@ -174,8 +174,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         mock_logline.assert_called_with(expected_labels, mock_message.record)
 
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
-    @patch("loki_logger_handler.loki_logger_handler.time")
-    def test_flush_happy_path(self, mock_sleep, mock_thread):
+    def test_flush_happy_path(self, mock_thread):
         handler = LokiLoggerHandler(
             "http://test_url",
             labels={"label1": "value1"},
@@ -189,13 +188,23 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler.buffer = mock_queue
         handler.buffer.empty.side_effect = [False, True]
 
-        mock_sleep.sleep.side_effect = Exception("Break the loop")
+        mock_flush_event = Mock()
+        handler.flush_event = mock_flush_event
+      
+        mock_wait = Mock()
+        mock_flush_event.wait.side_effect = mock_wait
+        mock_wait.side_effect = [None, Exception("Break the loop")]
+
+        mock_clear = Mock()
+        mock_flush_event.clear.side_effect = mock_clear
+
         try:
             handler._flush()
         except Exception as e:
             self.assertEqual(str(e), "Break the loop")
 
-        mock_sleep.sleep.assert_called_with(handler.timeout)
+        mock_wait.assert_called_with(timeout=handler.timeout)
+        mock_clear.assert_called_once()
         handler._send.assert_called_once()
 
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
@@ -351,12 +360,18 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler._send = Mock()  # Mock the _send method
         handler.buffer.empty = Mock(return_value=True)  # Buffer is empty
 
+        mock_flush_event = Mock()
+        handler.flush_event = mock_flush_event
+      
+        mock_wait = Mock()
+        mock_flush_event.wait.side_effect = mock_wait
+        mock_wait.side_effect = [Exception("StopIteration")]
+
         # Call _flush directly and then immediately break out of the loop
-        with patch("loki_logger_handler.loki_logger_handler.time.sleep", side_effect=Exception("StopIteration")):
-            try:
-                handler._flush()
-            except Exception as e:
-                self.assertEqual(str(e), "StopIteration")
+        try:
+            handler._flush()
+        except Exception as e:
+            self.assertEqual(str(e), "StopIteration")
 
         handler._send.assert_not_called()  # _send should not be called
 
