@@ -39,6 +39,7 @@ class LoguruFormatter:
             "level": record.get("level").name.upper(),
         }
 
+        loki_metadata = {}
         # Update with extra fields if available
         extra = record.get("extra", {})
         if isinstance(extra, dict):
@@ -47,6 +48,12 @@ class LoguruFormatter:
                 formatted.update(extra["extra"])
             else:
                 formatted.update(extra)
+            
+            loki_metadata = formatted.get("loki_metadata")
+            if loki_metadata:
+                if not isinstance(loki_metadata, dict):
+                    loki_metadata = {}
+                del formatted["loki_metadata"]
 
         # Check if the log level indicates an error (case-insensitive and can be partial)
         if formatted["level"].startswith("ER"):
@@ -54,18 +61,34 @@ class LoguruFormatter:
             formatted["path"] = record.get("file").path
             formatted["line"] = record.get("line")
 
-            if record.get("exception"):
-                exc_type, exc_value, exc_traceback = record.get("exception")
-                if sys.version_info[0] == 2:
-                    # Python 2.7: Use the older method for formatting exceptions
-                    formatted_traceback = traceback.format_exception(
-                        exc_type, exc_value, exc_traceback
-                    )
-                else:
-                    # Python 3.x: This is the same
-                    formatted_traceback = traceback.format_exception(
-                        exc_type, exc_value, exc_traceback
-                    )
-                formatted["stacktrace"] = "".join(formatted_traceback)
+            self.add_exception_details(record, formatted)
 
-        return formatted
+        return formatted, loki_metadata
+
+    def add_exception_details(self, record, formatted):
+        """
+        Adds exception details to the formatted log record.
+
+        Args:
+            record (dict): The log record containing log information.
+            formatted (dict): The dictionary to which the formatted exception details will be added.
+
+        Notes:
+            - If the log record contains an exception, this method extracts the exception type,
+              value, and traceback, formats the traceback, and adds it to the 'stacktrace' key
+              in the formatted dictionary.
+            - Handles both Python 2.7 and Python 3.x versions for formatting exceptions.
+        """
+        if record.get("exception"):
+            exc_type, exc_value, exc_traceback = record.get("exception")
+            if sys.version_info[0] == 2:
+                    # Python 2.7: Use the older method for formatting exceptions
+                formatted_traceback = traceback.format_exception(
+                        exc_type, exc_value, exc_traceback
+                    )
+            else:
+                    # Python 3.x: This is the same
+                formatted_traceback = traceback.format_exception(
+                        exc_type, exc_value, exc_traceback
+                    )
+            formatted["stacktrace"] = "".join(formatted_traceback)

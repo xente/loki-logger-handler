@@ -1,5 +1,4 @@
 import traceback
-import logging
 
 
 class LoggerFormatter:
@@ -56,9 +55,15 @@ class LoggerFormatter:
         # Capture any custom fields added to the log record
         record_keys = set(record.__dict__.keys())
         custom_fields = record_keys - self.LOG_RECORD_FIELDS
+        loki_metadata = {}
 
         for key in custom_fields:
-            formatted[key] = getattr(record, key)
+            if "loki_metadata" == key:
+                value = getattr(record, key)
+                if isinstance(value, dict):
+                    loki_metadata = value
+            else:
+                formatted[key] = getattr(record, key)
 
         # Check if the log level indicates an error (case-insensitive and can be partial)
         if record.levelname.upper().startswith("ER"):
@@ -67,7 +72,7 @@ class LoggerFormatter:
             formatted["line"] = record.lineno
             formatted["stacktrace"] = self._format_stacktrace(record.exc_info)
 
-        return formatted
+        return formatted, loki_metadata
 
     @staticmethod
     def _format_stacktrace(exc_info):
