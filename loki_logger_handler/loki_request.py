@@ -58,17 +58,13 @@ class LokiRequest:
             response.raise_for_status()
 
         except requests.RequestException as e:
-            sys.stderr.write("Error while sending logs: {}\n".format(e))
             
             if response is not None:
-                sys.stderr.write(
-                    "Response status code: {}, "
-                    "response text: {}, "
-                    "post request URL: {}\n".format(
-                        response.status_code, response.text, response.request.url
-                    )
-                )
-            raise e   
+                response_message=  f"Response status code: {response.status_code}, response text: {response.text}, post request URL: {response.request.url}"
+                raise requests.RequestException(f"Error while sending logs: {str(e)}\nCaptured error details:\n{response_message}") from e
+
+            raise requests.RequestException(f"Error while sending logs: {str(e)}") from e
+
 
         finally:
             if response:

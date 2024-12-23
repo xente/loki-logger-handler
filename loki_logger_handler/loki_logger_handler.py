@@ -1,5 +1,3 @@
-import sys
-
 # Compatibility for Python 2 and 3 queue module
 try:
     import queue  # Python 3.x
@@ -9,8 +7,6 @@ except ImportError:
 import atexit
 import logging
 import threading
-import time
-
 import requests
 
 from loki_logger_handler.formatters.logger_formatter import LoggerFormatter
@@ -43,7 +39,8 @@ class LokiLoggerHandler(logging.Handler):
         message_in_json_format=True,
         timeout=10,
         compressed=True,
-        default_formatter=LoggerFormatter()
+        default_formatter=LoggerFormatter(),
+        enable_self_errors=False
     ):
         """
         Initialize the LokiLoggerHandler object.
@@ -58,6 +55,8 @@ class LokiLoggerHandler(logging.Handler):
             compressed (bool, optional): Whether to compress the logs using gzip. Defaults to True.
             default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,
                 LoggerFormatter or LoguruFormatter will be used.
+            enable_self_errors (bool, optional): Set to 
+                True to show Hanlder errors on console. Default False
         """
         super(LokiLoggerHandler, self).__init__()
 
@@ -65,6 +64,16 @@ class LokiLoggerHandler(logging.Handler):
         self.label_keys = label_keys if label_keys is not None else {}
         self.timeout = timeout
         self.formatter = default_formatter
+
+        self.enable_self_errors = enable_self_errors
+
+        # Create a logger for self-errors if enabled
+        if self.enable_self_errors:
+            self.debug_logger = logging.getLogger("LokiHandlerDebug")
+            self.debug_logger.setLevel(logging.ERROR)
+            console_handler = logging.StreamHandler()
+            self.debug_logger.addHandler(console_handler)
+
         self.request = LokiRequest(
             url=url, compressed=compressed, additional_headers=additional_headers or {}
         )
@@ -79,7 +88,10 @@ class LokiLoggerHandler(logging.Handler):
 
         self.message_in_json_format = message_in_json_format
 
-        self.send_error = None
+        #Halndler working with errors
+        self.error = False
+
+
 
     def emit(self, record):
         """
@@ -91,8 +103,10 @@ class LokiLoggerHandler(logging.Handler):
         try:
             formatted_record = self.formatter.format(record)
             self._put(formatted_record)
-        except Exception:
-            pass  # Silently ignore any exceptions
+        except Exception as e:
+            if self.enable_self_errors:
+                self.debug_logger.error("Unexpected error: %s",e, exc_info=True)
+            self.error = True
 
     def _flush(self):
         """
@@ -112,9 +126,10 @@ class LokiLoggerHandler(logging.Handler):
             if not self.buffer.empty():
                 try:
                     self._send()
-                except Exception:
-                    pass  # Silently ignore any exceptions
-
+                except Exception as e:
+                    if self.enable_self_errors:
+                        self.debug_logger.error("Unexpected error: %s",e, exc_info=True)
+                    self.error = True                 
 
     def _send(self):
         """
@@ -135,7 +150,9 @@ class LokiLoggerHandler(logging.Handler):
             try:
                 self.request.send(streams.serialize())
             except requests.RequestException as e:
-                self.send_error = e
+                if self.enable_self_errors:
+                    self.debug_logger.error("Unexpected error: %s",e, exc_info=True)
+                self.error = True
 
     def write(self, message):
         """

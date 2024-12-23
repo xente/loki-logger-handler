@@ -25,6 +25,7 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 * compressed (bool, optional): Whether to compress the log messages before sending them to Loki. Defaults to True.
 * loguru (bool, optional): Whether to use `LoguruFormatter`. Defaults to False.
 * default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,`LoggerFormatter` or `LoguruFormatter` will be used.
+* enable_self_errors (bool, optional): Set to True to show Hanlder errors on console. Defaults to False
 
 ## Formatters
 * **LoggerFormatter**: Formatter for default python logging implementation
