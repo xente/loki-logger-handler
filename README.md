@@ -26,6 +26,9 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 * loguru (bool, optional): Whether to use `LoguruFormatter`. Defaults to False.
 * default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,`LoggerFormatter` or `LoguruFormatter` will be used.
 * enable_self_errors (bool, optional): Set to True to show Hanlder errors on console. Defaults to False
+### Loki 3.0 
+* enable_structured_metadata (bool, optional):  Whether to include structured metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
+* global_metadata (type, optional): Description of global_metadata. Defaults to None. Only supported for Loki 3.0 and above
 
 ## Formatters
 * **LoggerFormatter**: Formatter for default python logging implementation
@@ -150,7 +153,80 @@ Filter by extra:
 {environment="Develop", level="INFO"} |= `` | json | code=`200`
 ```
 
-## **Development Environment: Dev Container**
+
+## Loki Structured Metadata
+
+Loki structured metadata to include additional context in your logs. This can be useful for filtering and querying logs in Loki.
+
+### Example global metadata
+
+```python
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
+import logging
+import os
+
+# Set up logging
+logger = logging.getLogger("custom_logger")
+logger.setLevel(logging.DEBUG)
+
+# Create an instance of the custom handler with structured metadata
+custom_handler = LokiLoggerHandler(
+  url=os.environ["LOKI_URL"],
+  labels={"application": "Test", "environment": "Develop"},
+  label_keys={},
+  timeout=10,
+  enable_structured_metadata=True,
+  global_metadata={"service": "user-service", "version": "1.0.0"}
+)
+
+logger.addHandler(custom_handler)
+
+```
+
+In this example, the `global_metadata` dictionary includes metadata that will be attached to every log message. The `enable_structured_metadata` flag ensures that this metadata is included in the logs.
+
+### Example log metadata
+
+
+```python
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
+import logging
+import os
+
+# Set up logging
+logger = logging.getLogger("custom_logger")
+logger.setLevel(logging.DEBUG)
+
+# Create an instance of the custom handler with structured metadata
+custom_handler = LokiLoggerHandler(
+  url=os.environ["LOKI_URL"],
+  labels={"application": "Test", "environment": "Develop"},
+  label_keys={},
+  timeout=10,
+  enable_structured_metadata=True,
+  global_metadata={"service": "user-service", "version": "1.0.0"}
+)
+
+logger.addHandler(custom_handler)
+
+logger.info("User acction", extra={"loki_metadata": {"user_id": 12345, "operation": "update", "status": "success"}})
+
+```
+
+### Querying Logs with Structured Metadata
+
+You can query logs in Loki using the structured metadata. For example, to filter logs by the `service` metadata:
+
+```
+{service="user-service"} |= `` | service="user-service"
+```
+
+This query will return all logs where the `service` metadata is set to `user-service`.
+
+
+
+
+## Development Environment: Dev Container
 
 This project uses a **Dev Container** to provide a consistent and reproducible development environment. A Dev Container ensures all team members have the same tools, dependencies, and configurations, avoiding "works on my machine" issues.
 
