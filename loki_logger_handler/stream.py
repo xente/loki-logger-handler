@@ -1,5 +1,5 @@
-import json
 import time
+import json
 
 # Compatibility for Python 2 and 3
 try:
@@ -69,7 +69,7 @@ class Stream(object):
         except (TypeError, ValueError):
             # Fallback to the current time in nanoseconds if the timestamp is missing or invalid
             timestamp = str(time_ns())
-
+        
         formatted_value = json.dumps(value, ensure_ascii=False) if self.message_in_json_format else value
         if metadata or self.loki_metadata:
             # Ensure both metadata and self.loki_metadata are dictionaries (default to empty dict if None)

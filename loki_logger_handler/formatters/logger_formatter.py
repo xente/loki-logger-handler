@@ -1,5 +1,5 @@
 import traceback
-
+import time
 
 class LoggerFormatter:
     """
@@ -41,6 +41,7 @@ class LoggerFormatter:
         Returns:
             dict: A dictionary representation of the log record.
         """
+
         formatted = {
             "message": record.getMessage(),
             "timestamp": record.created,
@@ -53,8 +54,11 @@ class LoggerFormatter:
         }
 
         # Capture any custom fields added to the log record
-        record_keys = set(record.__dict__.keys())
-        custom_fields = record_keys - self.LOG_RECORD_FIELDS
+        custom_fields = {
+            key: value for key, value in record.__dict__.items()
+            if key not in self.LOG_RECORD_FIELDS
+        }
+       
         loki_metadata = {}
 
         for key in custom_fields:

@@ -14,7 +14,7 @@
 	"forwardPorts": [
 		3000
 	],
-	"postCreateCommand": "pip3 install --user -r /workspaces/loki-logger-handler/requirements.txt",
+	"postCreateCommand": "pip3 install --user -r /workspaces/loki-logger-handler/requirements.txt && pip3 install pytest",
 	"customizations": {
 		"vscode": {
 			"extensions": [
