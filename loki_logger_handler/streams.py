@@ -7,12 +7,12 @@ class _LokiRequestEncoder(json.JSONEncoder):
     This internal class is used to handle the serialization
     of Streams objects into the JSON format expected by Loki.
     """
-    def default(self, obj):
-        if isinstance(obj, Streams):
+    def default(self, o):
+        if isinstance(o, Streams):
             # Convert the Streams object to a dictionary format suitable for Loki
-            return {"streams": [stream.__dict__ for stream in obj.streams]}
+            return {"streams": [stream.__dict__ for stream in o.streams]}
         # Use the default serialization method for other objects
-        return super(_LokiRequestEncoder, self).default(obj)
+        return super(_LokiRequestEncoder, self).default(o)
 
 
 class Streams(object):  # Explicitly inherit from object for Python 2 compatibility

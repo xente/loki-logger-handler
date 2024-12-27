@@ -1,11 +1,6 @@
-import requests
 import gzip
-import sys
+import requests
 
-try:
-    from io import BytesIO as IO  # For Python 3
-except ImportError:
-    from StringIO import StringIO as IO  # For Python 2
 
 
 class LokiRequest:
@@ -49,14 +44,11 @@ class LokiRequest:
         try:
             if self.compressed:
                 self.headers["Content-Encoding"] = "gzip"
-                buf = IO()
-                with gzip.GzipFile(fileobj=buf, mode="wb") as f:
-                    f.write(data.encode("utf-8"))
-                data = buf.getvalue()
-
+                data = gzip.compress(data.encode("utf-8"))
+            
             response = self.session.post(self.url, data=data, headers=self.headers)
             response.raise_for_status()
-
+            
         except requests.RequestException as e:
             
             if response is not None:
