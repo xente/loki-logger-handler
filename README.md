@@ -27,8 +27,9 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 * default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,`LoggerFormatter` or `LoguruFormatter` will be used.
 * enable_self_errors (bool, optional): Set to True to show Hanlder errors on console. Defaults to False
 ### Loki 3.0 
-* enable_structured_metadata (bool, optional):  Whether to include structured metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
-* global_metadata (type, optional): Description of global_metadata. Defaults to None. Only supported for Loki 3.0 and above
+* enable_structured_loki_metadata (bool, optional):  Whether to include structured loki_metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
+* loki_metadata (dict, optional): Default loki_metadata values. Defaults to None. Only supported for Loki 3.0 and above
+* loki_metadata_keys (arrray, optional): Specific log record keys to extract as loki_metadata. Only supported for Loki 3.0 and above
 
 ## Formatters
 * **LoggerFormatter**: Formatter for default python logging implementation
@@ -162,7 +163,7 @@ We can add metadata in 3 ways:
 
 1. Defile static loki_metadata that will be injected into all logs lines
 2. Use logger extra options adding metadata inside `loki_metadata` key
-3. 
+3. Use logger  `loki_metadata_keys` to move logs keys to loki metadata. 
 
 ### Example global metadata
 
@@ -181,7 +182,7 @@ custom_handler = LokiLoggerHandler(
   labels={"application": "Test", "environment": "Develop"},
   label_keys={},
   timeout=10,
-  enable_structured_metadata=True,
+  enable_structured_loki_metadata=True,
   loki_metadata={"service": "user-service", "version": "1.0.0"}
 )
 
@@ -189,7 +190,7 @@ logger.addHandler(custom_handler)
 
 ```
 
-In this example, the `loki_metadata` dictionary includes metadata that will be attached to every log message. The `enable_structured_metadata` flag ensures that this metadata is included in the logs.
+In this example, the `loki_metadata` dictionary includes metadata that will be attached to every log message. The `enable_structured_loki_metadata` flag ensures that this metadata is included in the logs.
 
 ### Example log metadata
 
@@ -209,7 +210,7 @@ custom_handler = LokiLoggerHandler(
   labels={"application": "Test", "environment": "Develop"},
   label_keys={},
   timeout=10,
-  enable_structured_metadata=True,
+  enable_structured_loki_metadata=True,
   loki_metadata={"service": "user-service", "version": "1.0.0"}
 )
 
@@ -234,7 +235,7 @@ custom_handler = LokiLoggerHandler(
   labels={"application": "Test", "environment": "Develop"},
   label_keys={},
   timeout=10,
-  enable_structured_metadata=True,
+  enable_structured_loki_metadata=True,
   loki_metadata={"service": "user-service", "version": "1.0.0"},
   loki_metadata_keys=["trace_id"]
 )
