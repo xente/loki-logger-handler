@@ -37,6 +37,11 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 
 ## How to use 
 
+First create a environment varialble to setup your loki url with this structure (Ej: https://100239:wdadw....dwad@logs-prod-eu-west-0.grafana.net/loki/api/v1/push)
+````python
+LOKI_URL="https://{{USER}}:{{PASSWORD}}@{{GRAFANA_LOKI_URL}}/loki/api/v1/push"
+````
+
 ### Logger
 ```python
 from loki_logger_handler.loki_logger_handler import LokiLoggerHandler,
@@ -68,8 +73,6 @@ from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
 from loki_logger_handler.formatters.loguru_formatter import LoguruFormatter
 from loguru import logger
 import os 
-
-os.environ["LOKI_URL"]="https://USER:PASSWORD@logs-prod-eu-west-0.grafana.net/loki/api/v1/push"
 
 custom_handler = LokiLoggerHandler(
     url=os.environ["LOKI_URL"],
