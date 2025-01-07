@@ -130,8 +130,8 @@ class LokiLoggerHandler(logging.Handler):
             if not self.buffer.empty():
                 try:
                     self._send()
-                except Exception:
-                    pass  # Silently ignore any exceptions
+                except Exception as e:
+                    self.handle_unexpected_error(e)
 
     def _send(self):
         """
