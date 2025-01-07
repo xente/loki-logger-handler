@@ -205,7 +205,7 @@ class LokiLoggerHandler(logging.Handler):
         log_line = LogLine(labels, log_record)
         log_size = log_line.size()
         self.buffer.put(log_line)
-        self.current_stream_size += log_size
+        self._current_stream_size += log_size
 
         if (
             self.max_stream_size > 0
