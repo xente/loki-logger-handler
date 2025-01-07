@@ -1,11 +1,6 @@
-import requests
 import gzip
-import sys
+import requests
 
-try:
-    from io import BytesIO as IO  # For Python 3
-except ImportError:
-    from StringIO import StringIO as IO  # For Python 2
 
 
 class LokiRequest:
@@ -18,6 +13,7 @@ class LokiRequest:
         headers (dict): Additional headers to include in the request.
         session (requests.Session): The session used for making HTTP requests.
     """
+
     def __init__(self, url, compressed=False, additional_headers=None):
         """
         Initialize the LokiRequest object with the server URL, compression option, and additional headers.
@@ -48,24 +44,19 @@ class LokiRequest:
         try:
             if self.compressed:
                 self.headers["Content-Encoding"] = "gzip"
-                buf = IO()
-                with gzip.GzipFile(fileobj=buf, mode='wb') as f:
-                    f.write(data.encode("utf-8"))
-                data = buf.getvalue()
-
+                data = gzip.compress(data.encode("utf-8"))
+            
             response = self.session.post(self.url, data=data, headers=self.headers)
             response.raise_for_status()
-
+            
         except requests.RequestException as e:
-            sys.stderr.write("Error while sending logs: {}\n".format(e))
+            
             if response is not None:
-                sys.stderr.write(
-                    "Response status code: {}, "
-                    "response text: {}, "
-                    "post request URL: {}\n".format(
-                        response.status_code, response.text, response.request.url
-                    )
-                )
+                response_message=  f"Response status code: {response.status_code}, response text: {response.text}, post request URL: {response.request.url}"
+                raise requests.RequestException(f"Error while sending logs: {str(e)}\nCaptured error details:\n{response_message}") from e
+
+            raise requests.RequestException(f"Error while sending logs: {str(e)}") from e
+
 
         finally:
             if response:

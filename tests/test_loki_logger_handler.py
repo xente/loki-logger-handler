@@ -17,14 +17,13 @@ from tests.helper import LevelObject, RecordValueMock, TimeObject
 
 class CustomFormatter(logging.Formatter):
     def format(self, record):
-        return "Custom formatted: {}".format(record.getMessage())
+        return "Custom formatted: {}".format(record.getMessage()), None
 
 
 class TestLokiLoggerHandler(unittest.TestCase):
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
     @patch.object(LokiLoggerHandler, "_put")
-    @patch("loki_logger_handler.formatters.logger_formatter.LoggerFormatter")
-    def test_emit(self, mock_formatter, mock_put, mock_thread):
+    def test_emit(self, mock_put, mock_thread):
         # Arrange
         record = {
             "level": LevelObject(name="INFO"),
@@ -37,6 +36,8 @@ class TestLokiLoggerHandler(unittest.TestCase):
             "name": "sample_name",
             "extra": {},
         }
+
+        mock_formatter = MagicMock()
         handler = LokiLoggerHandler(
             url="your_url",
             labels={"application": "Test", "environment": "Develop"},
@@ -44,11 +45,14 @@ class TestLokiLoggerHandler(unittest.TestCase):
             default_formatter=mock_formatter,
         )
         # Act
+        mock_formatter.format.return_value = ("formatted_value", "formatted_metadata")
         handler.emit(record)
+        handler.emit(record)
+        mock_formatter.format.return_value = ("formatted_value", "formatted_metadata")
 
         # Assert
         mock_formatter.format.assert_called_with(record)
-        mock_put.assert_called_with(handler.formatter.format.return_value)
+        mock_put.assert_called_with(*mock_formatter.format.return_value)
 
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
     def test_emit_no_record(self, mock_thread):
@@ -133,7 +137,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         mock_queue = Mock()
         handler.buffer = mock_queue
         # Act
-        handler._put(mock_message.record)
+        handler._put(mock_message.record, None)
 
         expected_labels = {"application": "Test", "environment": "Develop"}
         mock_logline.assert_called_with(expected_labels, mock_message.record)
@@ -164,7 +168,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         mock_queue = Mock()
         handler.buffer = mock_queue
         # Act
-        handler._put(mock_message.record)
+        handler._put(mock_message.record, None)
 
         expected_labels = {
             "application": "Test",
@@ -174,8 +178,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         mock_logline.assert_called_with(expected_labels, mock_message.record)
 
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
-    @patch("loki_logger_handler.loki_logger_handler.time")
-    def test_flush_happy_path(self, mock_sleep, mock_thread):
+    def test_flush_happy_path(self, mock_thread):
         handler = LokiLoggerHandler(
             "http://test_url",
             labels={"label1": "value1"},
@@ -189,13 +192,23 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler.buffer = mock_queue
         handler.buffer.empty.side_effect = [False, True]
 
-        mock_sleep.sleep.side_effect = Exception("Break the loop")
+        mock_flush_event = Mock()
+        handler.flush_event = mock_flush_event
+      
+        mock_wait = Mock()
+        mock_flush_event.wait.side_effect = mock_wait
+        mock_wait.side_effect = [None, Exception("Break the loop")]
+
+        mock_clear = Mock()
+        mock_flush_event.clear.side_effect = mock_clear
+
         try:
             handler._flush()
         except Exception as e:
             self.assertEqual(str(e), "Break the loop")
 
-        mock_sleep.sleep.assert_called_with(handler.timeout)
+        mock_wait.assert_called_with(timeout=handler.timeout)
+        mock_clear.assert_called_once()
         handler._send.assert_called_once()
 
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
@@ -249,10 +262,10 @@ class TestLokiLoggerHandler(unittest.TestCase):
 
         mock_stream.assert_has_calls(
             [
-                call(log1.labels, message_in_json_format),
-                call().append_value(log1.line),
-                call(log2.labels, message_in_json_format),
-                call().append_value(log2.line),
+                call(log1.labels, None, message_in_json_format),
+                call().append_value(log1.line,None),
+                call(log2.labels, None, message_in_json_format),
+                call().append_value(log2.line,None),
             ]
         )
 
@@ -301,7 +314,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         actual_streams = list(mock_streams.call_args[0][0])
         self.assertEqual(expected_streams, actual_streams)
 
-        mock_stream.assert_has_calls([call(log1.labels, message_in_json_format)])
+        mock_stream.assert_has_calls([call(log1.labels,None, message_in_json_format)])
 
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
     @patch("loki_logger_handler.loki_logger_handler.Streams")
@@ -337,7 +350,7 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler.emit(record)
 
         # Assert
-        formatted_message = handler.formatter.format(record)
+        formatted_message, _ = handler.formatter.format(record)
         self.assertEqual(formatted_message, "Custom formatted: Test message")
 
     @patch("loki_logger_handler.loki_logger_handler.threading.Thread")
@@ -351,12 +364,18 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler._send = Mock()  # Mock the _send method
         handler.buffer.empty = Mock(return_value=True)  # Buffer is empty
 
+        mock_flush_event = Mock()
+        handler.flush_event = mock_flush_event
+      
+        mock_wait = Mock()
+        mock_flush_event.wait.side_effect = mock_wait
+        mock_wait.side_effect = [Exception("StopIteration")]
+
         # Call _flush directly and then immediately break out of the loop
-        with patch("loki_logger_handler.loki_logger_handler.time.sleep", side_effect=Exception("StopIteration")):
-            try:
-                handler._flush()
-            except Exception as e:
-                self.assertEqual(str(e), "StopIteration")
+        try:
+            handler._flush()
+        except Exception as e:
+            self.assertEqual(str(e), "StopIteration")
 
         handler._send.assert_not_called()  # _send should not be called
 
@@ -396,7 +415,27 @@ class TestLokiLoggerHandler(unittest.TestCase):
         handler.emit(record)
 
         # Assert
-        mock_put.assert_called_with("Custom formatted: Test message")
+        mock_put.assert_called_with("Custom formatted: Test message", None)
+
+    @patch("loki_logger_handler.loki_logger_handler.LokiLoggerHandler._put")
+    def test_loki_metadata_validation(self, mock_put):
+        # Arrange
+        mock_formatter = MagicMock()
+        handler = LokiLoggerHandler(
+            url="your_url",
+            labels={"application": "Test", "environment": "Develop"},
+            label_keys={},
+            default_formatter=mock_formatter,
+        )
+        record = MagicMock()
+
+        # Act
+        mock_formatter.format.return_value = ("formatted_value", {"key": "value"})
+        handler.emit(record)
+
+        # Assert
+        mock_formatter.format.assert_called_with(record)
+        mock_put.assert_called_with("formatted_value", {"key": "value"})
 
 
 if __name__ == "__main__":
