@@ -1,5 +1,3 @@
-import sys
-
 # Compatibility for Python 2 and 3 queue module
 try:
     import queue  # Python 3.x
@@ -7,7 +5,6 @@ except ImportError:
     import Queue as queue  # Python 2.7
 
 import threading
-import time
 import logging
 import json
 import atexit
@@ -73,6 +70,7 @@ class LokiLoggerHandler(logging.Handler):
         )
         self.buffer = queue.Queue()
         self.flush_thread = threading.Thread(target=self._flush)
+        self.flush_event = threading.Event()
 
         # Set daemon for Python 2 and 3 compatibility
         self.flush_thread.daemon = True
@@ -81,7 +79,6 @@ class LokiLoggerHandler(logging.Handler):
         self.message_in_json_format = message_in_json_format
         self.max_stream_size = max_stream_size
         self._current_stream_size = 0
-        self._force_send = False
 
     def emit(self, record):
         """
@@ -104,27 +101,23 @@ class LokiLoggerHandler(logging.Handler):
         atexit.register(self._send)
 
         while True:
+            # Wait until flush_event is set or timeout elapses
+            self.flush_event.wait(timeout=self.timeout)
+            # Reset the event for the next cycle
+            self.flush_event.clear()
+
+            # Flush the logs if buffer is not empty
             if not self.buffer.empty():
                 try:
                     self._send()
                 except Exception:
                     pass  # Silently ignore any exceptions
-            else:
-                for i in range(self.timeout * 10):
-                    time.sleep(0.1)
-                    if self._force_send:
-                        try:
-                            self._send()
-                        except Exception:
-                            pass  # Silently ignore any exceptions
 
     def _send(self):
         """
         Send the buffered logs to the Loki server.
         """
         temp_streams = {}
-        # reset indicators for forcefully sending
-        self._force_send = False
         self._current_stream_size = 0
 
         while not self.buffer.empty():
@@ -170,7 +163,8 @@ class LokiLoggerHandler(logging.Handler):
             self.max_stream_size > 0
             and self._current_stream_size >= self.max_stream_size
         ):
-            self._force_send = True
+            # send event to call flush_event and then unlock it without waiting timeout
+            self.flush_event.set()
 
 
 class LogLine:
