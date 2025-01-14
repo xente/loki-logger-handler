@@ -12,7 +12,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/xente/loki-logger-handler",
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests*", "tests.*"]),
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
