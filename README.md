@@ -20,6 +20,7 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 * url (str): The URL of the Loki server.
 * labels (dict): A dictionary of labels to attach to each log message.
 * label_keys (dict, optional): A dictionary of keys to extract from each log message and use as labels. Defaults to None.
+* auth (tuple, optional): Basic authentication credentials for the Loki request. Defaults to None.
 * additional_headers (dict, optional): Additional headers for the Loki request. Defaults to None.
 * timeout (int, optional): Timeout interval in seconds to wait before flushing the buffer. Defaults to 10 seconds.
 * compressed (bool, optional): Whether to compress the log messages before sending them to Loki. Defaults to True.
