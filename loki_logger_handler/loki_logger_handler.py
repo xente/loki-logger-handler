@@ -25,6 +25,7 @@ class LokiLoggerHandler(logging.Handler):
         url,
         labels,
         label_keys=None,
+        auth=None,
         additional_headers=None,
         message_in_json_format=True,
         timeout=10,
@@ -43,6 +44,7 @@ class LokiLoggerHandler(logging.Handler):
             url (str): The URL of the Loki server.
             labels (dict): Default labels for the logs.
             label_keys (dict, optional): Specific log record keys to extract as labels. Defaults to None.
+            auth (tuple, optional): Basic authentication credentials for the Loki request. Defaults to None.
             additional_headers (dict, optional): Additional headers for the Loki request. Defaults to None.
             message_in_json_format (bool): Whether to format log values as JSON.
             timeout (int, optional): Timeout interval for flushing logs. Defaults to 10 seconds.
@@ -70,7 +72,7 @@ class LokiLoggerHandler(logging.Handler):
             self.debug_logger.addHandler(console_handler)
 
         self.request = LokiRequest(
-            url=url, compressed=compressed, additional_headers=additional_headers or {}
+            url=url, compressed=compressed, auth=auth, additional_headers=additional_headers or {}
         )
 
         self.buffer = queue.Queue()
