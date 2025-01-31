@@ -10,6 +10,7 @@ class LokiRequest:
     Attributes:
         url (str): The URL of the Loki server.
         compressed (bool): Whether to compress the logs using gzip.
+        auth (tuple): Basic authentication credentials to include in the request.
         headers (dict): Additional headers to include in the request.
         session (requests.Session): The session used for making HTTP requests.
     """
@@ -21,6 +22,7 @@ class LokiRequest:
         Args:
             url (str): The URL of the Loki server.
             compressed (bool, optional): Whether to compress the logs using gzip. Defaults to False.
+            auth (tuple, optional): Basic authentication credentials to include in the request. Defaults to None.
             additional_headers (dict, optional): Additional headers to include in the request.
             Defaults to an empty dictionary.
         """
