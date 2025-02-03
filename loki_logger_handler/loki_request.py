@@ -10,22 +10,26 @@ class LokiRequest:
     Attributes:
         url (str): The URL of the Loki server.
         compressed (bool): Whether to compress the logs using gzip.
+        auth (tuple): Basic authentication credentials to include in the request.
         headers (dict): Additional headers to include in the request.
         session (requests.Session): The session used for making HTTP requests.
+        insecure_ssl_verify (bool): Whether to verify ssl certificate. Defaults to True
     """
-
-    def __init__(self, url, compressed=False, additional_headers=None, insecure_ssl_verify=True):
+    
+    def __init__(self, url, compressed=False, auth=None, additional_headers=None, insecure_ssl_verify=True):
         """
         Initialize the LokiRequest object with the server URL, compression option, and additional headers.
 
         Args:
             url (str): The URL of the Loki server.
             compressed (bool, optional): Whether to compress the logs using gzip. Defaults to False.
+            auth (tuple, optional): Basic authentication credentials to include in the request. Defaults to None.
             additional_headers (dict, optional): Additional headers to include in the request.
             Defaults to an empty dictionary.
         """
         self.url = url
         self.compressed = compressed
+        self.auth = auth
         self.headers = additional_headers if additional_headers is not None else {}
         self.headers["Content-Type"] = "application/json"
         self.session = requests.Session()
@@ -47,7 +51,7 @@ class LokiRequest:
                 self.headers["Content-Encoding"] = "gzip"
                 data = gzip.compress(data.encode("utf-8"))
             
-            response = self.session.post(self.url, data=data, headers=self.headers, verify=self.insecure_ssl_verify)
+            response = self.session.post(self.url, data=data, auth=self.auth, headers=self.headers, verify=self.insecure_ssl_verify)
             response.raise_for_status()
             
         except requests.RequestException as e:
