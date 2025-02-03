@@ -30,6 +30,7 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 * enable_structured_loki_metadata (bool, optional):  Whether to include structured loki_metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
 * loki_metadata (dict, optional): Default loki_metadata values. Defaults to None. Only supported for Loki 3.0 and above
 * loki_metadata_keys (arrray, optional): Specific log record keys to extract as loki_metadata. Only supported for Loki 3.0 and above
+* insecure_ssl_verify (bool, optional): Skip verify ssl certificate when set False.
 
 ## Formatters
 * **LoggerFormatter**: Formatter for default python logging implementation
