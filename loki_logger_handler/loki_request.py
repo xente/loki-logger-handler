@@ -14,7 +14,7 @@ class LokiRequest:
         session (requests.Session): The session used for making HTTP requests.
     """
 
-    def __init__(self, url, compressed=False, additional_headers=None,insecure_ssl_verify=True):
+    def __init__(self, url, compressed=False, additional_headers=None, insecure_ssl_verify=True):
         """
         Initialize the LokiRequest object with the server URL, compression option, and additional headers.
 
