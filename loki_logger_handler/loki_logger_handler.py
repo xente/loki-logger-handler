@@ -33,8 +33,8 @@ class LokiLoggerHandler(logging.Handler):
         enable_self_errors=False,
         enable_structured_loki_metadata=False,
         loki_metadata=None,
-        loki_metadata_keys=None
-
+        loki_metadata_keys=None,
+        insecure_ssl_verify=True
     ):
         """
         Initialize the LokiLoggerHandler object.
@@ -70,7 +70,8 @@ class LokiLoggerHandler(logging.Handler):
             self.debug_logger.addHandler(console_handler)
 
         self.request = LokiRequest(
-            url=url, compressed=compressed, additional_headers=additional_headers or {}
+            url=url, compressed=compressed, additional_headers=additional_headers or {},
+            insecure_ssl_verify=insecure_ssl_verify
         )
 
         self.buffer = queue.Queue()
@@ -89,6 +90,7 @@ class LokiLoggerHandler(logging.Handler):
         self.enable_structured_loki_metadata = enable_structured_loki_metadata
         self.loki_metadata = loki_metadata
         self.loki_metadata_keys = loki_metadata_keys if loki_metadata_keys is not None else []
+        self.insecure_ssl_verify = insecure_ssl_verify
 
     def emit(self, record):
         """
