@@ -80,7 +80,7 @@ class Stream(object):
             loki_metadata.update(metadata)
             
             # Transform all non-string values to strings, Grafana Loki does not accept non str values
-            formatted_metadata =  {key: str(value) for key, value in metadata.items()}
+            formatted_metadata =  {key: str(value) for key, value in loki_metadata.items()}
             self.values.append([timestamp, formatted_value, formatted_metadata])
         else:
             self.values.append([timestamp, formatted_value])
