@@ -43,6 +43,11 @@ First create a environment varialble to setup your loki url with this structure 
 LOKI_URL="https://{{USER}}:{{PASSWORD}}@{{GRAFANA_LOKI_URL}}/loki/api/v1/push"
 ````
 
+### Install
+```sh
+pip install loki-logger-handler
+```
+
 ### Logger
 ```python
 from loki_logger_handler.loki_logger_handler import LokiLoggerHandler,
