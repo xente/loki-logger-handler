@@ -34,8 +34,8 @@ class LokiLoggerHandler(logging.Handler):
         enable_self_errors=False,
         enable_structured_loki_metadata=False,
         loki_metadata=None,
-        loki_metadata_keys=None
-
+        loki_metadata_keys=None,
+        insecure_ssl_verify=True
     ):
         """
         Initialize the LokiLoggerHandler object.
@@ -45,6 +45,7 @@ class LokiLoggerHandler(logging.Handler):
             labels (dict): Default labels for the logs.
             label_keys (dict, optional): Specific log record keys to extract as labels. Defaults to None.
             auth (tuple, optional): Basic authentication credentials for the Loki request. Defaults to None.
+            insecure_ssl_verify (bool): Whether to verify ssl certificate. Defaults to True
             additional_headers (dict, optional): Additional headers for the Loki request. Defaults to None.
             message_in_json_format (bool): Whether to format log values as JSON.
             timeout (int, optional): Timeout interval for flushing logs. Defaults to 10 seconds.
@@ -72,7 +73,8 @@ class LokiLoggerHandler(logging.Handler):
             self.debug_logger.addHandler(console_handler)
 
         self.request = LokiRequest(
-            url=url, compressed=compressed, auth=auth, additional_headers=additional_headers or {}
+            url=url, compressed=compressed, auth=auth, additional_headers=additional_headers or {},
+            insecure_ssl_verify=insecure_ssl_verify
         )
 
         self.buffer = queue.Queue()
@@ -91,6 +93,7 @@ class LokiLoggerHandler(logging.Handler):
         self.enable_structured_loki_metadata = enable_structured_loki_metadata
         self.loki_metadata = loki_metadata
         self.loki_metadata_keys = loki_metadata_keys if loki_metadata_keys is not None else []
+        self.insecure_ssl_verify = insecure_ssl_verify
 
     def emit(self, record):
         """
