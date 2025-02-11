@@ -33,10 +33,12 @@ class Stream(object):
     """
     def __init__(self, labels=None, loki_metadata=None, message_in_json_format=True):
         """
-        Initialize a Stream object with optional labels.
+        Initialize a Stream object with optional labels and metadata.
         
         Args:
             labels (dict, optional): A dictionary of labels for the stream. Defaults to an empty dictionary.
+            loki_metadata (dict, optional): A dictionary of metadata for the stream. Defaults to None.
+            message_in_json_format (bool, optional): Whether to format log values as JSON. Defaults to True.
         """
         self.stream = labels or {}
         self.values = []
@@ -74,13 +76,15 @@ class Stream(object):
         if metadata or self.loki_metadata:
             # Ensure both metadata and self.loki_metadata are dictionaries (default to empty dict if None)
             metadata = metadata if metadata is not None else {}
-            loki_metadata = self.loki_metadata if self.loki_metadata is not None else {}
+            # Make a copy of self.loki_metadata if it is not None, so that we can safely update it
+            log_line_metadata = dict(self.loki_metadata) if self.loki_metadata is not None else {}
 
             # Merge metadata into global metadata, override global values from log line metadata values
-            loki_metadata.update(metadata)
+            log_line_metadata.update(metadata)
             
             # Transform all non-string values to strings, Grafana Loki does not accept non str values
-            formatted_metadata =  {key: str(value) for key, value in loki_metadata.items()}
+            formatted_metadata =  {key: str(value) for key, value in log_line_metadata.items()}
+
             self.values.append([timestamp, formatted_value, formatted_metadata])
         else:
             self.values.append([timestamp, formatted_value])
