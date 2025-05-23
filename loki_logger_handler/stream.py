@@ -68,7 +68,7 @@ class Stream(object):
         try:
             # Convert the timestamp to nanoseconds and ensure it's a string
             timestamp = str(int(value.get("timestamp") * 1e9))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, AttributeError):
             # Fallback to the current time in nanoseconds if the timestamp is missing or invalid
             timestamp = str(time_ns())
         
