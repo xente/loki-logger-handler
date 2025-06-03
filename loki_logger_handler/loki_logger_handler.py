@@ -34,8 +34,8 @@ class LokiLoggerHandler(logging.Handler):
         enable_self_errors=False,
         enable_structured_loki_metadata=False,
         loki_metadata=None,
-        loki_metadata_keys=None
-
+        loki_metadata_keys=None,
+        requests_timeout=None,
     ):
         """
         Initialize the LokiLoggerHandler object.
@@ -54,6 +54,7 @@ class LokiLoggerHandler(logging.Handler):
             enable_structured_loki_metadata (bool, optional):  Whether to include structured loki_metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
             loki_metadata (dict, optional): Default loki_metadata values. Defaults to None. Only supported for Loki 3.0 and above
             loki_metadata_keys (arrray, optional): Specific log record keys to extract as loki_metadata. Only supported for Loki 3.0 and above
+            requests_timeout (int or tuple, optional): Timeout for requests to the Loki server. Defaults to None, which is the default timeout of the requests library.
         """
         super(LokiLoggerHandler, self).__init__()
 
@@ -72,7 +73,7 @@ class LokiLoggerHandler(logging.Handler):
             self.debug_logger.addHandler(console_handler)
 
         self.request = LokiRequest(
-            url=url, compressed=compressed, auth=auth, additional_headers=additional_headers or {}
+            url=url, compressed=compressed, auth=auth, additional_headers=additional_headers or {}, timeout=requests_timeout
         )
 
         self.buffer = queue.Queue()
