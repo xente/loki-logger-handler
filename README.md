@@ -50,9 +50,9 @@ pip install loki-logger-handler
 
 ### Logger
 ```python
-from loki_logger_handler.loki_logger_handler import LokiLoggerHandler,
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
 import logging
-import os 
+import os
 
 # Set up logging
 logger = logging.getLogger("custom_logger")
@@ -78,7 +78,7 @@ logger.debug("Debug message", extra={'custom_field': 'custom_value'})
 from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
 from loki_logger_handler.formatters.loguru_formatter import LoguruFormatter
 from loguru import logger
-import os 
+import os
 
 custom_handler = LokiLoggerHandler(
     url=os.environ["LOKI_URL"],
