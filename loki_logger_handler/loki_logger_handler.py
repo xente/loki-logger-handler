@@ -9,6 +9,23 @@ from loki_logger_handler.formatters.logger_formatter import LoggerFormatter
 from loki_logger_handler.loki_request import LokiRequest
 from loki_logger_handler.stream import Stream
 from loki_logger_handler.streams import Streams
+from dataclasses import dataclass, field
+from typing import Optional, List, Tuple, Dict, Any
+
+
+@dataclass
+class LokiHandlerConfig:
+    label_keys: Optional[List[str]] = field(default_factory=list)
+    auth: Optional[Tuple[str, str]] = None
+    additional_headers: Optional[Dict[str, str]] = field(default_factory=dict)
+    timeout: int = 10
+    compressed: bool = True
+    loguru: bool = False
+    default_formatter: Optional[logging.Formatter] = None
+    enable_self_errors: bool = False
+    enable_structured_loki_metadata: bool = False
+    loki_metadata: Optional[Dict[str, Any]] = field(default_factory=dict)
+    loki_metadata_keys: Optional[List[str]] = field(default_factory=list)
 
 
 class LokiLoggerHandler(logging.Handler):
@@ -20,18 +37,8 @@ class LokiLoggerHandler(logging.Handler):
         self,
         url,
         labels,
-        label_keys=None,
-        auth=None,
-        additional_headers=None,
+        config: Optional[LokiHandlerConfig] = None,
         message_in_json_format=True,
-        timeout=10,
-        compressed=True,
-        default_formatter=LoggerFormatter(),
-        enable_self_errors=False,
-        enable_structured_loki_metadata=False,
-        loki_metadata=None,
-        loki_metadata_keys=None
-
     ):
         """
         Initialize the LokiLoggerHandler object.
@@ -39,26 +46,17 @@ class LokiLoggerHandler(logging.Handler):
         Args:
             url (str): The URL of the Loki server.
             labels (dict): Default labels for the logs.
-            label_keys (dict, optional): Specific log record keys to extract as labels. Defaults to None.
-            auth (tuple, optional): Basic authentication credentials for the Loki request. Defaults to None.
-            additional_headers (dict, optional): Additional headers for the Loki request. Defaults to None.
+            config (LokiHandlerConfig, optional): Configuration dataclass for the handler.
             message_in_json_format (bool): Whether to format log values as JSON.
-            timeout (int, optional): Timeout interval for flushing logs. Defaults to 10 seconds.
-            compressed (bool, optional): Whether to compress the logs using gzip. Defaults to True.
-            default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided, LoggerFormatter or LoguruFormatter will be used.
-            enable_self_errors (bool, optional): Set to True to show Hanlder errors on console. Default False
-            enable_structured_loki_metadata (bool, optional):  Whether to include structured loki_metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
-            loki_metadata (dict, optional): Default loki_metadata values. Defaults to None. Only supported for Loki 3.0 and above
-            loki_metadata_keys (arrray, optional): Specific log record keys to extract as loki_metadata. Only supported for Loki 3.0 and above
         """
         super().__init__()
 
+        config = config or LokiHandlerConfig()
         self.labels = labels
-        self.label_keys = label_keys if label_keys is not None else {}
-        self.timeout = timeout
-        self.formatter = default_formatter
-
-        self.enable_self_errors = enable_self_errors
+        self.label_keys = config.label_keys
+        self.timeout = config.timeout
+        self.formatter = config.default_formatter or LoggerFormatter()
+        self.enable_self_errors = config.enable_self_errors
 
         # Create a logger for self-errors if enabled
         if self.enable_self_errors:
@@ -68,7 +66,7 @@ class LokiLoggerHandler(logging.Handler):
             self.debug_logger.addHandler(console_handler)
 
         self.request = LokiRequest(
-            url=url, compressed=compressed, auth=auth, additional_headers=additional_headers or {}
+            url=url, compressed=config.compressed, auth=config.auth, additional_headers=config.additional_headers or {}
         )
 
         self.buffer = queue.Queue()
@@ -79,11 +77,11 @@ class LokiLoggerHandler(logging.Handler):
 
         self.message_in_json_format = message_in_json_format
 
-        # Halndler working with errors
+        # Handler working with errors
         self.error = False
-        self.enable_structured_loki_metadata = enable_structured_loki_metadata
-        self.loki_metadata = loki_metadata
-        self.loki_metadata_keys = loki_metadata_keys if loki_metadata_keys is not None else []
+        self.enable_structured_loki_metadata = config.enable_structured_loki_metadata
+        self.loki_metadata = config.loki_metadata
+        self.loki_metadata_keys = config.loki_metadata_keys
 
     def emit(self, record):
         """

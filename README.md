@@ -15,26 +15,22 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 * Publish in batch of Streams
 * Publish logs compressed
 
-## Args
+## Config
 
-* url (str): The URL of the Loki server.
-* labels (dict): A dictionary of labels to attach to each log message.
-* label_keys (dict, optional): A dictionary of keys to extract from each log message and use as labels. Defaults to None.
-* auth (tuple, optional): Basic authentication credentials for the Loki request. Defaults to None.
-* additional_headers (dict, optional): Additional headers for the Loki request. Defaults to None.
-* timeout (int, optional): Timeout interval in seconds to wait before flushing the buffer. Defaults to 10 seconds.
-* compressed (bool, optional): Whether to compress the log messages before sending them to Loki. Defaults to True.
-* loguru (bool, optional): Whether to use `LoguruFormatter`. Defaults to False.
-* default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,`LoggerFormatter` or `LoguruFormatter` will be used.
-* enable_self_errors (bool, optional): Set to True to show Hanlder errors on console. Defaults to False
-### Loki 3.0 
-* enable_structured_loki_metadata (bool, optional):  Whether to include structured loki_metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
-* loki_metadata (dict, optional): Default loki_metadata values. Defaults to None. Only supported for Loki 3.0 and above
-* loki_metadata_keys (arrray, optional): Specific log record keys to extract as loki_metadata. Only supported for Loki 3.0 and above
+We can customize the behavior of the handler by passing a `LokiHandlerConfig` object to the handler.
 
-## Formatters
-* **LoggerFormatter**: Formatter for default python logging implementation
-* **LoguruFormatter**: Formatter for Loguru python library
+* `label_keys`: A list of keys to extract from each log message and use as labels.
+* `auth`: Basic authentication credentials for the Loki request.
+* `additional_headers`: Additional headers for the Loki request.
+* `timeout`: Timeout interval in seconds to wait before flushing the buffer.
+* `compressed`: Whether to compress the log messages before sending them to Loki.
+* `loguru`: Whether to use `LoguruFormatter`.
+* `default_formatter`: Formatter for the log records. If not provided,`LoggerFormatter` or `LoguruFormatter` will be used.
+* `enable_self_errors`: Set to True to show Hanlder errors on console.
+* `enable_structured_loki_metadata`: Whether to include structured loki_metadata in the logs. Only supported for Loki 3.0 and above.
+* `loki_metadata`: Default loki_metadata values. Only supported for Loki 3.0 and above.
+* `loki_metadata_keys`: Specific log record keys to extract as loki_metadata. Only supported for Loki 3.0 and above.
+
 
 ## How to use 
 
@@ -50,7 +46,7 @@ pip install loki-logger-handler
 
 ### Logger
 ```python
-from loki_logger_handler.loki_logger_handler import LokiLoggerHandler,
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler, LokiHandlerConfig
 import logging
 import os 
 
@@ -58,12 +54,16 @@ import os
 logger = logging.getLogger("custom_logger")
 logger.setLevel(logging.DEBUG)
 
+# Create a config object
+config = LokiHandlerConfig(
+    label_keys=["application", "environment"],
+    timeout=10,
+)
 # Create an instance of the custom handler
 custom_handler = LokiLoggerHandler(
     url=os.environ["LOKI_URL"],
     labels={"application": "Test", "environment": "Develop"},
-    label_keys={},
-    timeout=10,
+    config=config
 )
 # Create an instance of the custom handler
 
@@ -75,17 +75,21 @@ logger.debug("Debug message", extra={'custom_field': 'custom_value'})
 ### Loguru
 
 ```python
-from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler, LokiHandlerConfig
 from loki_logger_handler.formatters.loguru_formatter import LoguruFormatter
 from loguru import logger
 import os 
 
-custom_handler = LokiLoggerHandler(
-    url=os.environ["LOKI_URL"],
-    labels={"application": "Test", "environment": "Develop"},
+config = LokiHandlerConfig(
     label_keys={},
     timeout=10,
     default_formatter=LoguruFormatter(),
+)
+
+custom_handler = LokiLoggerHandler(
+    url=os.environ["LOKI_URL"],
+    labels={"application": "Test", "environment": "Develop"},
+    config=config,
 )
 logger.configure(handlers=[{"sink": custom_handler, "serialize": True}])
 
@@ -177,7 +181,7 @@ We can add metadata in 3 ways:
 ### Example global metadata
 
 ```python
-from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler, LokiHandlerConfig
 import logging
 import os
 
@@ -186,13 +190,16 @@ logger = logging.getLogger("custom_logger")
 logger.setLevel(logging.DEBUG)
 
 # Create an instance of the custom handler with structured metadata
-custom_handler = LokiLoggerHandler(
-  url=os.environ["LOKI_URL"],
-  labels={"application": "Test", "environment": "Develop"},
+config = LokiHandlerConfig(
   label_keys={},
   timeout=10,
   enable_structured_loki_metadata=True,
   loki_metadata={"service": "user-service", "version": "1.0.0"}
+)
+custom_handler = LokiLoggerHandler(
+  url=os.environ["LOKI_URL"],
+  labels={"application": "Test", "environment": "Develop"},
+  config=config
 )
 
 logger.addHandler(custom_handler)
@@ -205,7 +212,7 @@ In this example, the `loki_metadata` dictionary includes metadata that will be a
 
 
 ```python
-from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler, LokiHandlerConfig
 import logging
 import os
 
@@ -214,13 +221,16 @@ logger = logging.getLogger("custom_logger")
 logger.setLevel(logging.DEBUG)
 
 # Create an instance of the custom handler with structured metadata
+config = LokiHandlerConfig(
+    label_keys={},
+    timeout=10,
+    enable_structured_loki_metadata=True,
+    loki_metadata={"service": "user-service", "version": "1.0.0"}
+)
 custom_handler = LokiLoggerHandler(
   url=os.environ["LOKI_URL"],
   labels={"application": "Test", "environment": "Develop"},
-  label_keys={},
-  timeout=10,
-  enable_structured_loki_metadata=True,
-  loki_metadata={"service": "user-service", "version": "1.0.0"}
+  config=config
 )
 
 logger.addHandler(custom_handler)
@@ -230,7 +240,7 @@ logger.info("User acction", extra={"loki_metadata": {"user_id": 12345, "operatio
 ```
 
 ```python
-from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
+from loki_logger_handler.loki_logger_handler import LokiLoggerHandler, LokiHandlerConfig
 import logging
 import os
 
@@ -239,20 +249,18 @@ logger = logging.getLogger("custom_logger")
 logger.setLevel(logging.DEBUG)
 
 # Create an instance of the custom handler with structured metadata
+config = LokiHandlerConfig(
+    label_keys={},
+    timeout=10,
+    enable_structured_loki_metadata=True,
+    loki_metadata={"service": "user-service", "version": "1.0.0"},
+    loki_metadata_keys=["trace_id"]
+)
 custom_handler = LokiLoggerHandler(
   url=os.environ["LOKI_URL"],
   labels={"application": "Test", "environment": "Develop"},
-  label_keys={},
-  timeout=10,
-  enable_structured_loki_metadata=True,
-  loki_metadata={"service": "user-service", "version": "1.0.0"},
-  loki_metadata_keys=["trace_id"]
+  config=config
 )
-
-logger.addHandler(custom_handler)
-
-logger.info("User acction", extra={"loki_metadata": {"user_id": 12345, "operation": "update", "status": "success"}, "trace_id": "000-000000-0000"})
-
 ```
 
 
