@@ -1,13 +1,5 @@
-import time
 import json
-
-# Compatibility for Python 2 and 3
-try:
-    from time import time_ns  # Python 3.7+
-except ImportError:
-    import datetime
-    def time_ns():
-        return int((time.time() + datetime.datetime.now().microsecond / 1e6) * 1e9)
+from time import time_ns
 
 
 class _StreamEncoder(json.JSONEncoder):
@@ -19,10 +11,10 @@ class _StreamEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Stream):
             return obj.__dict__
-        return super(_StreamEncoder, self).default(obj)
+        return super().default(obj)
 
 
-class Stream(object):
+class Stream:
     """
     A class representing a data stream with associated labels and values.
     
@@ -73,17 +65,11 @@ class Stream(object):
             timestamp = str(time_ns())
         
         formatted_value = json.dumps(value, ensure_ascii=False) if self.message_in_json_format else value
-        if metadata or self.loki_metadata:
-            # Ensure both metadata and self.loki_metadata are dictionaries (default to empty dict if None)
-            metadata = metadata if metadata is not None else {}
-            # Make a copy of self.loki_metadata if it is not None, so that we can safely update it
-            log_line_metadata = dict(self.loki_metadata) if self.loki_metadata is not None else {}
-
-            # Merge metadata into global metadata, override global values from log line metadata values
-            log_line_metadata.update(metadata)
-            
+        
+        log_line_metadata = {**(self.loki_metadata or {}), **(metadata or {})}
+        if log_line_metadata:
             # Transform all non-string values to strings, Grafana Loki does not accept non str values
-            formatted_metadata =  {key: str(value) for key, value in log_line_metadata.items()}
+            formatted_metadata = {key: str(value) for key, value in log_line_metadata.items()}
 
             self.values.append([timestamp, formatted_value, formatted_metadata])
         else:

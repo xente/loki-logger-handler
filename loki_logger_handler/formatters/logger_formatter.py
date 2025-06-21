@@ -1,5 +1,5 @@
+import logging
 import traceback
-import time
 
 class LoggerFormatter:
     """
@@ -28,9 +28,6 @@ class LoggerFormatter:
         "exc_text",
     }
 
-    def __init__(self):
-        pass
-
     def format(self, record):
         """
         Format a log record into a structured dictionary.
@@ -54,23 +51,16 @@ class LoggerFormatter:
         }
 
         # Capture any custom fields added to the log record
-        custom_fields = {
-            key: value for key, value in record.__dict__.items()
-            if key not in self.LOG_RECORD_FIELDS
-        }
-       
         loki_metadata = {}
-
-        for key in custom_fields:
-            if "loki_metadata" == key:
-                value = getattr(record, key)
-                if isinstance(value, dict):
+        for key, value in record.__dict__.items():
+            if key not in self.LOG_RECORD_FIELDS:
+                if key == "loki_metadata" and isinstance(value, dict):
                     loki_metadata = value
-            else:
-                formatted[key] = getattr(record, key)
+                else:
+                    formatted[key] = value
 
-        # Check if the log level indicates an error (case-insensitive and can be partial)
-        if record.levelname.upper().startswith("ER"):
+        # Check if the log level indicates an error
+        if record.levelno >= logging.ERROR:
             formatted["file"] = record.filename
             formatted["path"] = record.pathname
             formatted["line"] = record.lineno

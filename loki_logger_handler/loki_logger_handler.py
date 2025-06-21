@@ -1,12 +1,8 @@
-# Compatibility for Python 2 and 3 queue module
-try:
-    import queue  # Python 3.x
-except ImportError:
-    import Queue as queue  # Python 2.7
-
 import atexit
 import logging
+import queue
 import threading
+
 import requests
 
 from loki_logger_handler.formatters.logger_formatter import LoggerFormatter
@@ -55,7 +51,7 @@ class LokiLoggerHandler(logging.Handler):
             loki_metadata (dict, optional): Default loki_metadata values. Defaults to None. Only supported for Loki 3.0 and above
             loki_metadata_keys (arrray, optional): Specific log record keys to extract as loki_metadata. Only supported for Loki 3.0 and above
         """
-        super(LokiLoggerHandler, self).__init__()
+        super().__init__()
 
         self.labels = labels
         self.label_keys = label_keys if label_keys is not None else {}
@@ -76,12 +72,9 @@ class LokiLoggerHandler(logging.Handler):
         )
 
         self.buffer = queue.Queue()
-        self.flush_thread = threading.Thread(target=self._flush)
+        self.flush_thread = threading.Thread(target=self._flush, daemon=True)
 
         self.flush_event = threading.Event()
-
-        # Set daemon for Python 2 and 3 compatibility
-        self.flush_thread.daemon = True
         self.flush_thread.start()
 
         self.message_in_json_format = message_in_json_format
