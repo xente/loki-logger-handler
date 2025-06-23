@@ -25,7 +25,7 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 * timeout (int, optional): Timeout interval in seconds to wait before flushing the buffer. Defaults to 10 seconds.
 * compressed (bool, optional): Whether to compress the log messages before sending them to Loki. Defaults to True.
 * loguru (bool, optional): Whether to use `LoguruFormatter`. Defaults to False.
-* default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,`LoggerFormatter` or `LoguruFormatter` will be used.
+* default_formatter (loki_logger_handler.formatters.LogFormatter, optional): Formatter for the log records. If not provided, `LoggerFormatter` or `LoguruFormatter` will be used.
 * enable_self_errors (bool, optional): Set to True to show Hanlder errors on console. Defaults to False
 ### Loki 3.0 
 * enable_structured_loki_metadata (bool, optional):  Whether to include structured loki_metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
