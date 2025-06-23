@@ -22,15 +22,16 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 * label_keys (dict, optional): A dictionary of keys to extract from each log message and use as labels. Defaults to None.
 * auth (tuple, optional): Basic authentication credentials for the Loki request. Defaults to None.
 * additional_headers (dict, optional): Additional headers for the Loki request. Defaults to None.
-* timeout (int, optional): Timeout interval in seconds to wait before flushing the buffer. Defaults to 10 seconds.
-* compressed (bool, optional): Whether to compress the log messages before sending them to Loki. Defaults to True.
-* loguru (bool, optional): Whether to use `LoguruFormatter`. Defaults to False.
-* default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided,`LoggerFormatter` or `LoguruFormatter` will be used.
-* enable_self_errors (bool, optional): Set to True to show Hanlder errors on console. Defaults to False
+* message_in_json_format (bool): Whether to format log values as JSON.
+* timeout (int, optional): Timeout interval for flushing logs in seconds. Defaults to 10 seconds.
+* compressed (bool, optional): Whether to compress the logs before sending them using gzip. Defaults to True.
+* default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided, `LoggerFormatter` or`LoguruFormatter` will be used.
+* enable_self_errors (bool, optional): Set to True to show Handler errors on console. Default False
+
 ### Loki 3.0 
 * enable_structured_loki_metadata (bool, optional):  Whether to include structured loki_metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
 * loki_metadata (dict, optional): Default loki_metadata values. Defaults to None. Only supported for Loki 3.0 and above
-* loki_metadata_keys (arrray, optional): Specific log record keys to extract as loki_metadata. Only supported for Loki 3.0 and above
+* loki_metadata_keys (array, optional): Specific log record keys to extract as loki_metadata. Only supported for Loki 3.0 and above
 
 ## Formatters
 * **LoggerFormatter**: Formatter for default python logging implementation
@@ -38,7 +39,7 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 
 ## How to use 
 
-First create a environment varialble to setup your loki url with this structure (Ej: https://100239:wdadw....dwad@logs-prod-eu-west-0.grafana.net/loki/api/v1/push)
+First create an environment variable to set up your loki url with this structure (Ej: https://100239:wdadw....dwad@logs-prod-eu-west-0.grafana.net/loki/api/v1/push)
 ````python
 LOKI_URL="https://{{USER}}:{{PASSWORD}}@{{GRAFANA_LOKI_URL}}/loki/api/v1/push"
 ````
@@ -225,7 +226,7 @@ custom_handler = LokiLoggerHandler(
 
 logger.addHandler(custom_handler)
 
-logger.info("User acction", extra={"loki_metadata": {"user_id": 12345, "operation": "update", "status": "success"}})
+logger.info("User action", extra={"loki_metadata": {"user_id": 12345, "operation": "update", "status": "success"}})
 
 ```
 
@@ -251,7 +252,7 @@ custom_handler = LokiLoggerHandler(
 
 logger.addHandler(custom_handler)
 
-logger.info("User acction", extra={"loki_metadata": {"user_id": 12345, "operation": "update", "status": "success"}, "trace_id": "000-000000-0000"})
+logger.info("User action", extra={"loki_metadata": {"user_id": 12345, "operation": "update", "status": "success"}, "trace_id": "000-000000-0000"})
 
 ```
 
