@@ -27,6 +27,7 @@ A logging handler that sends log messages to **(Grafana) Loki** in JSON format.
 * compressed (bool, optional): Whether to compress the logs before sending them using gzip. Defaults to True.
 * default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided, `LoggerFormatter` or`LoguruFormatter` will be used.
 * enable_self_errors (bool, optional): Set to True to show Handler errors on console. Default False
+* insecure_ssl_verify (bool, optional): Whether to verify ssl certificate. Defaults to True
 
 ### Loki 3.0 
 * enable_structured_loki_metadata (bool, optional):  Whether to include structured loki_metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above

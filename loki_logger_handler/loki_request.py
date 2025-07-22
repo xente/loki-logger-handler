@@ -15,7 +15,7 @@ class LokiRequest:
         session (requests.Session): The session used for making HTTP requests.
     """
 
-    def __init__(self, url, compressed=False, auth=None, additional_headers=None):
+    def __init__(self, url, compressed=False, auth=None, additional_headers=None, insecure_ssl_verify=True):
         """
         Initialize the LokiRequest object with the server URL, compression option, and additional headers.
 
@@ -32,6 +32,7 @@ class LokiRequest:
         self.headers = additional_headers if additional_headers is not None else {}
         self.headers["Content-Type"] = "application/json"
         self.session = requests.Session()
+        self.insecure_ssl_verify = insecure_ssl_verify
 
     def send(self, data):
         """
@@ -49,7 +50,7 @@ class LokiRequest:
                 self.headers["Content-Encoding"] = "gzip"
                 data = gzip.compress(data.encode("utf-8"))
             
-            response = self.session.post(self.url, data=data, auth=self.auth, headers=self.headers)
+            response = self.session.post(self.url, data=data, auth=self.auth, headers=self.headers, verify=self.insecure_ssl_verify)
             response.raise_for_status()
             
         except requests.RequestException as e:
