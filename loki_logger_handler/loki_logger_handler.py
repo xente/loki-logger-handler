@@ -25,30 +25,24 @@ class LokiLoggerHandler(logging.Handler):
         url,
         labels,
         label_keys=None,
-        auth=None,
-        additional_headers=None,
         message_in_json_format=True,
         timeout=10,
-        compressed=True,
         default_formatter=LoggerFormatter(),
         enable_self_errors=False,
         enable_structured_loki_metadata=False,
         loki_metadata=None,
-        loki_metadata_keys=None
+        loki_metadata_keys=None,
+        **kwargs
 
     ):
         """
         Initialize the LokiLoggerHandler object.
 
         Args:
-            url (str): The URL of the Loki server.
             labels (dict): A dictionary of labels to attach to each log message.
             label_keys (dict, optional): A dictionary of keys to extract from each log message and use as labels. Defaults to None.
-            auth (tuple, optional): Basic authentication credentials for the Loki request. Defaults to None.
-            additional_headers (dict, optional): Additional headers for the Loki request. Defaults to None.
             message_in_json_format (bool): Whether to format log values as JSON.
             timeout (int, optional): Timeout interval for flushing logs in seconds. Defaults to 10 seconds.
-            compressed (bool, optional): Whether to compress the logs before sending them using gzip. Defaults to True.
             default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided, `LoggerFormatter` or`LoguruFormatter` will be used.
             enable_self_errors (bool, optional): Set to True to show Handler errors on console. Default False
             enable_structured_loki_metadata (bool, optional):  Whether to include structured loki_metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
@@ -71,9 +65,7 @@ class LokiLoggerHandler(logging.Handler):
             console_handler = logging.StreamHandler()
             self.debug_logger.addHandler(console_handler)
 
-        self.request = LokiRequest(
-            url=url, compressed=compressed, auth=auth, additional_headers=additional_headers or {}
-        )
+        self.request = LokiRequest(url=url, **kwargs)
 
         self.buffer = queue.Queue()
         self.flush_thread = threading.Thread(target=self._flush)
