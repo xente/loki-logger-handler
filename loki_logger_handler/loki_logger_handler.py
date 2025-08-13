@@ -39,6 +39,7 @@ class LokiLoggerHandler(logging.Handler):
         Initialize the LokiLoggerHandler object.
 
         Args:
+            url (str): The URL of the Loki server.
             labels (dict): A dictionary of labels to attach to each log message.
             label_keys (dict, optional): A dictionary of keys to extract from each log message and use as labels. Defaults to None.
             message_in_json_format (bool): Whether to format log values as JSON.
@@ -65,7 +66,7 @@ class LokiLoggerHandler(logging.Handler):
             console_handler = logging.StreamHandler()
             self.debug_logger.addHandler(console_handler)
 
-        self.request = LokiRequest(url=url, **kwargs)
+        self.request = LokiRequest(url, **kwargs)
 
         self.buffer = queue.Queue()
         self.flush_thread = threading.Thread(target=self._flush)
