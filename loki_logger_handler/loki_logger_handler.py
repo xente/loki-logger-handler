@@ -44,7 +44,7 @@ class LokiLoggerHandler(logging.Handler):
             label_keys (dict, optional): A dictionary of keys to extract from each log message and use as labels. Defaults to None.
             message_in_json_format (bool): Whether to format log values as JSON.
             timeout (int, optional): Timeout interval for flushing logs in seconds. Defaults to 10 seconds.
-            default_formatter (logging.Formatter, optional): Formatter for the log records. If not provided, `LoggerFormatter` or`LoguruFormatter` will be used.
+            default_formatter (loki_logger_handler.formatters.LogFormatter, optional): Formatter for the log records. If not provided, `LoggerFormatter` or`LoguruFormatter` will be used.
             enable_self_errors (bool, optional): Set to True to show Handler errors on console. Default False
             enable_structured_loki_metadata (bool, optional):  Whether to include structured loki_metadata in the logs. Defaults to False. Only supported for Loki 3.0 and above
             loki_metadata (dict, optional): Default loki_metadata values. Defaults to None. Only supported for Loki 3.0 and above
